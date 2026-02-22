@@ -105,6 +105,7 @@ const CA_FREQ_LABELS = {
   fortnightly: "Fortnightly",
   four_weekly: "4-weekly",
   monthly: "Monthly",
+  yearly: "Yearly",
   last_day_of_month: "Last day of month",
   last_friday_of_month: "Last Friday of month",
 };
@@ -462,11 +463,11 @@ function nextOccurrencesWithinWindow({ start, first, freq, windowEnd }) {
   }
 
   if (d < start) {
-    if (freq === "monthly" || isSpecialMonthly(freq)) {
+    if (freq === "monthly" || freq === "yearly" || isSpecialMonthly(freq)) {
       let months = 0;
       while (d < start && months < 240) {
         months += 1;
-        const base = addMonthsSameDay(d, 1);
+        const base = addMonthsSameDay(d, freq === "yearly" ? 12 : 1);
         d = isSpecialMonthly(freq) ? specialMonthlyDateFor(base, freq) : base;
       }
     } else {
@@ -478,8 +479,8 @@ function nextOccurrencesWithinWindow({ start, first, freq, windowEnd }) {
   while (d <= windowEnd) {
     if (d >= start) occ.push(d);
 
-    if (freq === "monthly" || isSpecialMonthly(freq)) {
-      const base = addMonthsSameDay(d, 1);
+    if (freq === "monthly" || freq === "yearly" || isSpecialMonthly(freq)) {
+      const base = addMonthsSameDay(d, freq === "yearly" ? 12 : 1);
       d = isSpecialMonthly(freq) ? specialMonthlyDateFor(base, freq) : base;
     } else {
       d = addDays(d, freqDays(freq));
@@ -1289,6 +1290,7 @@ const [whatIfChecked, setWhatIfChecked] = useState(false);
     { value: "fortnightly", label: "Fortnightly" },
     { value: "four_weekly", label: "4-weekly" },
     { value: "monthly", label: "Monthly" },
+    { value: "yearly", label: "Yearly" },
     { value: "last_day_of_month", label: "Last day of month" },
     { value: "last_friday_of_month", label: "Last Friday of month" },
   ];
@@ -2687,7 +2689,7 @@ const labelStyle = {
       {step === 2 && (
   <div style={cardStyle}>
     <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "flex-start", gap: 12, flexWrap: "wrap" }}>
-          <h1 style={{ margin: 0, color: "#a855f7", WebkitTextStroke: "0.5px rgba(255,255,255,0.55)", textShadow: "0 0 6px rgba(255,255,255,0.55), 0 0 14px rgba(255,255,255,0.35), 0 0 26px rgba(255,255,255,0.18)" }}>ClearAhead</h1>
+          <h2 style={{ marginTop: 0 }}>Income</h2>
         </div>
 
     {renderStepper(2)}
