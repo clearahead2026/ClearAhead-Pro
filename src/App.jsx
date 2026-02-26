@@ -7,7 +7,7 @@ import "./App.css";
    Browser Block Gate (TWA-safe)
    - Shows a store/install screen when ClearAhead is opened in a normal browser.
    - Allows TWA (and future Play Billing bridge) to run normally.
-   - Bypass for debugging: add ?web=1 to the URL.
+   - Bypass for debugging: add  to the URL.
    ======================================================================== */
 
 const CA_BASIC_STORE_URL = "https://clearahead.app";
@@ -33,15 +33,6 @@ function caIsProbablyTWA() {
   return false;
 }
 
-function caHasWebBypass() {
-  try {
-    if (typeof window === "undefined") return false;
-    const v = new URLSearchParams(window.location.search).get("web");
-    return v === "1" || v === "true" || v === "" || new URLSearchParams(window.location.search).has("web");
-  } catch {
-    return false;
-  }
-}
 
 function CABrowserBlockScreen() {
   return (
@@ -106,10 +97,6 @@ function CABrowserBlockScreen() {
             >
               ClearAhead Pro
             </a>
-          </div>
-
-          <div style={{ marginTop: 12, fontSize: 12, opacity: 0.75 }}>
-            Tip: for debugging in a browser, add <code>?web=1</code> to the URL.
           </div>
         </div>
       </div>
@@ -973,7 +960,7 @@ export default function App() {
     setIsPro(IS_PRO_BUILD);
   }, [IS_PRO_BUILD]);
   // --- Browser Block Gate (prevents “free browser access” to the full app) ---
-  const caShouldBlockBrowser = !caHasWebBypass() && !caIsProbablyTWA();
+  const caShouldBlockBrowser = !caIsProbablyTWA();
   if (caShouldBlockBrowser) {
     return <CABrowserBlockScreen />;
   }
@@ -2751,10 +2738,6 @@ const labelStyle = {
   >
     Savings goals
   </button>
-
-  <div style={{ fontSize: 12, opacity: 0.75, display: "none" }}>
-    Tip: you can come back here any time — this is your home screen.
-  </div>
 <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 10, width: "100%", boxSizing: "border-box", flexWrap: "wrap" }}>
   <button
     type="button"
