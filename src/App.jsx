@@ -15,21 +15,29 @@ const CA_PRO_STORE_URL   = "https://clearahead.app";
 
 function caIsProbablyTWA() {
   try {
-    const ua = typeof navigator !== "undefined" ? (navigator.userAgent || "") : "";
-    // Digital Goods bridge is a strong positive signal (future-proof)
-    const hasDigitalGoods = typeof window !== "undefined" && typeof window.getDigitalGoodsService === "function";
-    // WebView / TWA user agents typically include "wv"
-    const isWebViewUA = /\bwv\b/i.test(ua);
-    return hasDigitalGoods || isWebViewUA;
+    // Most reliable signal for TWA: document.referrer like "android-app://<package>"
+    const ref = (typeof document !== "undefined" && document.referrer) ? document.referrer : "";
+    if (ref.startsWith("android-app://")) return true;
+
+    // Fallbacks: WebView/TWA UA often includes "wv"
+    const ua = (typeof navigator !== "undefined" && navigator.userAgent) ? navigator.userAgent : "";
+    if (ua.includes("; wv") || /\bwv\b/i.test(ua)) return true;
+
+    // Another fallback: installed-like display-mode (some devices)
+    if (typeof window !== "undefined" && window.matchMedia) {
+      if (window.matchMedia("(display-mode: standalone)").matches) return true;
+    }
   } catch {
-    return false;
+    // ignore
   }
+  return false;
 }
 
 function caHasWebBypass() {
   try {
     if (typeof window === "undefined") return false;
-    return new URLSearchParams(window.location.search).has("web");
+    const v = new URLSearchParams(window.location.search).get("web");
+    return v === "1" || v === "true" || v === "" || new URLSearchParams(window.location.search).has("web");
   } catch {
     return false;
   }
