@@ -2,6 +2,114 @@ import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "re
 
 import "./App.css";
 
+
+/* ========================================================================
+   Browser Block Gate (TWA-safe)
+   - Shows a store/install screen when ClearAhead is opened in a normal browser.
+   - Allows TWA (and future Play Billing bridge) to run normally.
+   - Bypass for debugging: add ?web=1 to the URL.
+   ======================================================================== */
+
+const CA_BASIC_STORE_URL = "https://clearahead.app";
+const CA_PRO_STORE_URL   = "https://clearahead.app";
+
+function caIsProbablyTWA() {
+  try {
+    const ua = typeof navigator !== "undefined" ? (navigator.userAgent || "") : "";
+    // Digital Goods bridge is a strong positive signal (future-proof)
+    const hasDigitalGoods = typeof window !== "undefined" && typeof window.getDigitalGoodsService === "function";
+    // WebView / TWA user agents typically include "wv"
+    const isWebViewUA = /\bwv\b/i.test(ua);
+    return hasDigitalGoods || isWebViewUA;
+  } catch {
+    return false;
+  }
+}
+
+function caHasWebBypass() {
+  try {
+    if (typeof window === "undefined") return false;
+    return new URLSearchParams(window.location.search).has("web");
+  } catch {
+    return false;
+  }
+}
+
+function CABrowserBlockScreen() {
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 24,
+        background: "#0B1220",
+        color: "#E5E7EB",
+        textAlign: "center",
+      }}
+    >
+      <div style={{ maxWidth: 520, width: "100%" }}>
+        <div
+          style={{
+            border: "1px solid rgba(255,255,255,0.10)",
+            background: "rgba(255,255,255,0.03)",
+            borderRadius: 16,
+            padding: 22,
+          }}
+        >
+          <h1 style={{ margin: 0, fontSize: 22, letterSpacing: 0.2 }}>ClearAhead is an app</h1>
+          <p style={{ marginTop: 10, lineHeight: 1.4, opacity: 0.95 }}>
+            Please install ClearAhead to use it. The web version is not available.
+          </p>
+
+          <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", marginTop: 14 }}>
+            <a
+              href={CA_BASIC_STORE_URL}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "10px 14px",
+                borderRadius: 10,
+                background: "rgba(168,85,247,0.95)",
+                color: "#0B1220",
+                textDecoration: "none",
+                fontWeight: 700,
+              }}
+            >
+              ClearAhead Basic
+            </a>
+
+            <a
+              href={CA_PRO_STORE_URL}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "10px 14px",
+                borderRadius: 10,
+                background: "rgba(255,255,255,0.10)",
+                color: "#E5E7EB",
+                border: "1px solid rgba(255,255,255,0.18)",
+                textDecoration: "none",
+                fontWeight: 700,
+              }}
+            >
+              ClearAhead Pro
+            </a>
+          </div>
+
+          <div style={{ marginTop: 12, fontSize: 12, opacity: 0.75 }}>
+            Tip: for debugging in a browser, add <code>?web=1</code> to the URL.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 // ---------- Locale currency formatting (global-ready) ----------
 const caLocale =
   (typeof navigator !== "undefined" && navigator.language)
@@ -856,6 +964,13 @@ export default function App() {
   useEffect(() => {
     setIsPro(IS_PRO_BUILD);
   }, [IS_PRO_BUILD]);
+  // --- Browser Block Gate (prevents “free browser access” to the full app) ---
+  const caShouldBlockBrowser = !caHasWebBypass() && !caIsProbablyTWA();
+  if (caShouldBlockBrowser) {
+    return <CABrowserBlockScreen />;
+  }
+  // ---------------------------------------------------------------------
+
   // Pro lookahead (Pro can choose 5–12 weeks; Basic is locked to 5 weeks)
   const [proLookaheadWeeks, setProLookaheadWeeks] = useState(5);
 
