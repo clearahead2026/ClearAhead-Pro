@@ -948,17 +948,102 @@ export default function App() {
   const [showProInfo, setShowProInfo] = useState(false);
   const [shareStatus, setShareStatus] = useState("");
   const [isPro, setIsPro] = useState(false);
+  const CA_PRO_UNLOCK_PRODUCT_ID = "pro_unlock";
+const CA_UNLOCK_STORAGE_KEY = "ca_pro_unlocked_v1";
+
+const [billingReady, setBillingReady] = useState(false);
+const [restoreMessage, setRestoreMessage] = useState("");
   
 
-// Pro entitlement is decided at build-time (two-app model):
-  // - ClearAhead Basic: VITE_CLEARAHEAD_EDITION="basic" (or unset)
-  // - ClearAhead Pro:   VITE_CLEARAHEAD_EDITION="pro"
-  // No in-app purchases, no restore, no store/billing bridges.
-  const CA_EDITION = (import.meta.env.VITE_CLEARAHEAD_EDITION || import.meta.env.VITE_CLEARAHEAD_PRO || "pro");
-  const IS_PRO_BUILD = String(CA_EDITION).toLowerCase() === "pro" || String(CA_EDITION).toLowerCase() === "true" || String(CA_EDITION) === "1";
   useEffect(() => {
-    setIsPro(IS_PRO_BUILD);
-  }, [IS_PRO_BUILD]);
+  try {
+    const unlocked = localStorage.getItem(CA_UNLOCK_STORAGE_KEY);
+    if (unlocked === "1") {
+      setIsPro(true);
+    }
+  } catch {}
+}, []);;
+useEffect(() => {
+  try {
+    const ua = navigator.userAgent || "";
+    const isAndroid = /Android/i.test(ua);
+    const hasDGS =
+      typeof navigator.getDigitalGoodsService === "function" ||
+      typeof window.getDigitalGoodsService === "function";
+
+    setBillingReady(isAndroid && hasDGS);
+  } catch {
+    setBillingReady(false);
+  }
+}, []);
+
+async function handleProUnlock() {
+  setRestoreMessage("");
+
+  try {
+    if (!billingReady || typeof window.PaymentRequest !== "function") {
+      setRestoreMessage("Billing not available on this device.");
+      return;
+    }
+
+    const methodData = [
+      {
+        supportedMethods: "https://play.google.com/billing",
+        data: { sku: CA_PRO_UNLOCK_PRODUCT_ID },
+      },
+    ];
+
+    const details = {
+      total: {
+        label: "ClearAhead Pro Unlock",
+        amount: { currency: "GBP", value: "2.99" },
+      },
+    };
+
+    const request = new window.PaymentRequest(methodData, details);
+    const response = await request.show();
+    await response.complete("success");
+
+    localStorage.setItem(CA_UNLOCK_STORAGE_KEY, "1");
+    setIsPro(true);
+    setRestoreMessage("Pro unlocked successfully.");
+  } catch (e) {
+    setRestoreMessage("Purchase cancelled or failed.");
+  }
+}
+
+async function handleRestorePurchase() {
+  setRestoreMessage("");
+
+  try {
+    const getDGS =
+      navigator.getDigitalGoodsService || window.getDigitalGoodsService;
+
+    if (!getDGS) {
+      setRestoreMessage("Billing not available on this device.");
+      return;
+    }
+
+    const service = await getDGS.call(navigator, "https://play.google.com/billing");
+    const purchases = await service.listPurchases();
+
+    const found = purchases.find((p) => {
+      const id =
+        p.itemId || p.productId || p.sku || p.product || "";
+      return id === CA_PRO_UNLOCK_PRODUCT_ID;
+    });
+
+    if (found) {
+      localStorage.setItem(CA_UNLOCK_STORAGE_KEY, "1");
+      setIsPro(true);
+      setRestoreMessage("Purchase restored successfully.");
+    } else {
+      setRestoreMessage("No purchase found on Google account.");
+    }
+  } catch (e) {
+    setRestoreMessage("Restore failed.");
+  }
+}
   // --- Browser Block Gate (prevents “free browser access” to the full app) ---
   const caShouldBlockBrowser = !caIsProbablyTWA();
   if (caShouldBlockBrowser) {
@@ -5590,37 +5675,88 @@ return (
                   Pro edition
                 </div>
               )}
-              <button
-                onClick={() => setShowProInfo(false)}
-                style={{
-                  background: "#8b5cf6",
-                  color: "white",
-                  border: "none",
-                  padding: "10px 14px",
-                  borderRadius: 14,
-                  fontWeight: 900,
-                  cursor: "pointer",
-                }}
-              >
-                Close
-              </button>
-            </div>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
+  {!isPro && (
+    <>
+      <button
+        onClick={handleProUnlock}
+        style={{
+          background: "#8b5cf6",
+          color: "white",
+          border: "none",
+          padding: "10px 14px",
+          borderRadius: 14,
+          fontWeight: 900,
+          cursor: "pointer",
+        }}
+      >
+        Unlock Pro
+      </button>
 
-            <div style={{ marginTop: 12, lineHeight: 1.6, fontSize: 14, opacity: 0.92 }}>
-              <p style={{ marginTop: 0 }}>
-                ClearAhead Pro is a separate edition that adds deeper clarity on top of Basic — without changing how Basic works.
-              </p>
+      <button
+        onClick={handleRestorePurchase}
+        style={{
+          background: "rgba(255,255,255,0.10)",
+          color: "rgba(241,245,249,0.96)",
+          border: "1px solid rgba(255,255,255,0.18)",
+          padding: "10px 14px",
+          borderRadius: 14,
+          fontWeight: 900,
+          cursor: "pointer",
+        }}
+      >
+        Restore Purchase
+      </button>
+    </>
+  )}
 
-              <div
-                style={{
-                  marginTop: 10,
-                  padding: 14,
-                  borderRadius: 16,
-                  background: "rgba(255,255,255,0.06)",
-                  border: "1px solid rgba(255,255,255,0.12)",
-                }}
-              >
-                <div style={{ fontWeight: 900, marginBottom: 6 }}>What Pro includes</div>
+  <button
+    onClick={() => setShowProInfo(false)}
+    style={{
+      background: "#8b5cf6",
+      color: "white",
+      border: "none",
+      padding: "10px 14px",
+      borderRadius: 14,
+      fontWeight: 900,
+      cursor: "pointer",
+    }}
+  >
+    Close
+  </button>
+</div>
+
+{restoreMessage && (
+  <div
+    style={{
+      marginTop: 12,
+      padding: 12,
+      borderRadius: 12,
+      background: "rgba(255,255,255,0.06)",
+      border: "1px solid rgba(255,255,255,0.12)",
+      fontSize: 14,
+      lineHeight: 1.5,
+    }}
+  >
+    {restoreMessage}
+  </div>
+)}
+
+<div style={{ marginTop: 12, lineHeight: 1.6, fontSize: 14, opacity: 0.92 }}>
+  <p style={{ marginTop: 0 }}>
+    ClearAhead Pro is a separate edition that adds deeper clarity on top of Basic — without changing how Basic works.
+  </p>
+</div>
+
+<div
+  style={{
+    marginTop: 10,
+    padding: 14,
+    borderRadius: 16,
+    background: "rgba(255,255,255,0.06)",
+    border: "1px solid rgba(255,255,255,0.12)",
+  }}
+>
                 <ul style={{ margin: 0, paddingLeft: 18 }}>
                   <li><strong>Up to 12 weeks:</strong> extend your lookahead from 5 up to 12 weeks (slider on Page 1).</li>
                   <li><strong>Calendar (Page 6):</strong> a month view of your income and outgoings (read‑only).</li>
