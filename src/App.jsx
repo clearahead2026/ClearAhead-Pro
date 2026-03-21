@@ -3,41 +3,46 @@ import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "re
 import "./App.css";
 
 
-/* ========================================================================
-   Browser Block Gate (TWA-safe)
-   - Shows a store/install screen when ClearAhead is opened in a normal browser.
-   - Allows TWA (and future Play Billing bridge) to run normally.
-   - Bypass for debugging: add  to the URL.
-   ======================================================================== */
+// =========================
+// Basic One-Time Unlock (Android Google Play Billing via Digital Goods API)
+// =========================
+const CA_PLAY_BILLING_STORE_ID = "https://play.google.com/billing";
+const CA_PLAY_STORE_APP_URL = "https://play.google.com/store/apps/details?id=app.clearahead.pro";
+const CA_BASIC_UNLOCK_PRODUCT_ID = "basic_unlock"; // MUST match Play Console product ID exactly
+const CA_BASIC_UNLOCK_SKU = CA_BASIC_UNLOCK_PRODUCT_ID;
+const CA_BASIC_UNLOCK_PURCHASE_OPTION_ID = CA_BASIC_UNLOCK_PRODUCT_ID;
+const CA_UNLOCK_STORAGE_KEY = "ca_basic_unlocked_v1";
 
-const CA_BASIC_STORE_URL = "https://clearahead.app";
-const CA_PRO_STORE_URL   = "https://clearahead.app";
-
-function caIsProbablyTWA() {
+function caCanUsePlayBilling() {
   try {
-    // Most reliable signal for TWA: document.referrer like "android-app://<package>"
-    const ref = (typeof document !== "undefined" && document.referrer) ? document.referrer : "";
-    if (ref.startsWith("android-app://")) return true;
+    if (typeof navigator === "undefined" || typeof window === "undefined") return false;
 
-    // Fallbacks: WebView/TWA UA often includes "wv"
-    const ua = (typeof navigator !== "undefined" && navigator.userAgent) ? navigator.userAgent : "";
-    if (ua.includes("; wv") || /\bwv\b/i.test(ua)) return true;
+    const ua = navigator.userAgent || "";
+    if (!/Android/i.test(ua)) return false;
+    if (/Windows/i.test(ua)) return false;
 
-    // Another fallback: installed-like display-mode (some devices)
-    if (typeof window !== "undefined" && window.matchMedia) {
-      if (window.matchMedia("(display-mode: standalone)").matches) return true;
-    }
+    return (
+      typeof navigator.getDigitalGoodsService === "function" ||
+      typeof window.getDigitalGoodsService === "function"
+    );
   } catch {
-    // ignore
+    return false;
   }
-  return false;
 }
 
-
-function CABrowserBlockScreen() {
+function CABasicUnlockOverlay({
+  priceLabel = "£0.99",
+  loading = false,
+  error = "",
+  onBuy,
+  onRestore,
+}) {
   return (
     <div
       style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 999999,
         minHeight: "100vh",
         display: "flex",
         alignItems: "center",
@@ -48,7 +53,7 @@ function CABrowserBlockScreen() {
         textAlign: "center",
       }}
     >
-      <div style={{ maxWidth: 520, width: "100%" }}>
+      <div style={{ maxWidth: 560, width: "100%" }}>
         <div
           style={{
             border: "1px solid rgba(255,255,255,0.10)",
@@ -57,53 +62,76 @@ function CABrowserBlockScreen() {
             padding: 22,
           }}
         >
-          <h1 style={{ margin: 0, fontSize: 22, letterSpacing: 0.2 }}>ClearAhead is an app</h1>
-          <p style={{ marginTop: 10, lineHeight: 1.4, opacity: 0.95 }}>
-            Please install ClearAhead to use it. The web version is not available.
+          <h1 style={{ margin: 0, fontSize: 22, letterSpacing: 0.2 }}>Unlock ClearAhead Basic</h1>
+          <p style={{ marginTop: 10, lineHeight: 1.5, opacity: 0.95 }}>
+            ClearAhead Basic is a <strong>one‑time purchase</strong>.<nobr />
+            No ads. No subscriptions. No in‑app traps.
           </p>
 
-          <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", marginTop: 14 }}>
-            <a
-              href={CA_BASIC_STORE_URL}
+          <div style={{ marginTop: 14, display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+            <button
+              type="button"
+              onClick={onBuy}
+              disabled={loading}
               style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: "10px 14px",
-                borderRadius: 10,
-                background: "rgba(168,85,247,0.95)",
+                background: "#8B5CF6",
                 color: "#0B1220",
-                textDecoration: "none",
-                fontWeight: 700,
+                border: "none",
+                padding: "10px 14px",
+                borderRadius: 12,
+                cursor: loading ? "not-allowed" : "pointer",
+                fontWeight: 800,
+                minWidth: 210,
               }}
             >
-              ClearAhead Basic
-            </a>
+              {loading ? "Loading…" : `Unlock for ${priceLabel}`}
+            </button>
 
-            <a
-              href={CA_PRO_STORE_URL}
+            <button
+              type="button"
+              onClick={onRestore}
+              disabled={loading}
               style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: "10px 14px",
-                borderRadius: 10,
                 background: "rgba(255,255,255,0.10)",
                 color: "#E5E7EB",
-                border: "1px solid rgba(255,255,255,0.18)",
-                textDecoration: "none",
+                border: "1px solid rgba(255,255,255,0.16)",
+                padding: "10px 14px",
+                borderRadius: 12,
+                cursor: loading ? "not-allowed" : "pointer",
                 fontWeight: 700,
+                minWidth: 210,
               }}
             >
-              ClearAhead Pro
-            </a>
+              Restore purchase
+            </button>
+          </div>
+
+          {error ? (
+            <div
+              style={{
+                marginTop: 14,
+                padding: 12,
+                borderRadius: 12,
+                background: "rgba(239,68,68,0.14)",
+                border: "1px solid rgba(239,68,68,0.35)",
+                color: "#FCA5A5",
+                fontSize: 12,
+    minHeight: 42,
+                lineHeight: 1.4,
+              }}
+            >
+              {error}
+            </div>
+          ) : null}
+
+          <div style={{ marginTop: 12, fontSize: 12, opacity: 0.78, lineHeight: 1.4 }}>
+            If you already paid on this Google account, tap <strong>Restore purchase</strong>.
           </div>
         </div>
       </div>
     </div>
   );
 }
-
 
 // ---------- Locale currency formatting (global-ready) ----------
 const caLocale =
@@ -208,9 +236,9 @@ const CA_FREQ_LABELS = {
   fortnightly: "Fortnightly",
   four_weekly: "4-weekly",
   monthly: "Monthly",
-  yearly: "Yearly",
   last_day_of_month: "Last day of month",
   last_friday_of_month: "Last Friday of month",
+  yearly: "Yearly",
 };
 
 function prettyFrequency(value) {
@@ -253,8 +281,7 @@ function BillsGroupButton({ id, title, subtitle, billsSection, setBillsSection, 
     >
       <div>
         <div>{title}</div>
-        {subtitle && <div style={{ fontSize: 13,
-                  fontWeight: 900, opacity: 0.75, marginTop: 3 }}>{subtitle}</div>}
+        {subtitle && <div style={{ fontSize: 12, fontWeight: 900, opacity: 0.75, marginTop: 3 }}>{subtitle}</div>}
       </div>
       <div style={{ fontWeight: 800, opacity: 0.9 }}>{open ? "▲" : "▼"}</div>
     </button>
@@ -570,7 +597,7 @@ function nextOccurrencesWithinWindow({ start, first, freq, windowEnd }) {
       let months = 0;
       while (d < start && months < 240) {
         months += 1;
-        const base = addMonthsSameDay(d, freq === "yearly" ? 12 : 1);
+        const base = addMonthsSameDay(d, (freq === "yearly") ? 12 : 1);
         d = isSpecialMonthly(freq) ? specialMonthlyDateFor(base, freq) : base;
       }
     } else {
@@ -583,7 +610,7 @@ function nextOccurrencesWithinWindow({ start, first, freq, windowEnd }) {
     if (d >= start) occ.push(d);
 
     if (freq === "monthly" || freq === "yearly" || isSpecialMonthly(freq)) {
-      const base = addMonthsSameDay(d, freq === "yearly" ? 12 : 1);
+      const base = addMonthsSameDay(d, (freq === "yearly") ? 12 : 1);
       d = isSpecialMonthly(freq) ? specialMonthlyDateFor(base, freq) : base;
     } else {
       d = addDays(d, freqDays(freq));
@@ -661,8 +688,7 @@ function IncomeGroupButton({ id, title, subtitle, incomeSection, setIncomeSectio
     >
       <div>
         <div>{title}</div>
-        {subtitle && <div style={{ fontSize: 13,
-                  fontWeight: 900, opacity: 0.75, marginTop: 3 }}>{subtitle}</div>}
+        {subtitle && <div style={{ fontSize: 12, fontWeight: 900, opacity: 0.75, marginTop: 3 }}>{subtitle}</div>}
       </div>
       <div style={{ fontWeight: 800, opacity: 0.9 }}>{open ? "▲" : "▼"}</div>
     </button>
@@ -923,6 +949,93 @@ function IncomeItemDetails({
 export default function App() {
   const [step, setStep] = useState(1);
   const [showAbout, setShowAbout] = useState(false);
+  // ---------- Basic one‑time unlock (Android only; hook-safe overlay) ----------
+  const [caUnlocked, setCaUnlocked] = useState(() => {
+    try {
+      return typeof window !== "undefined" && localStorage.getItem(CA_UNLOCK_STORAGE_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+  const [caUnlockChecked, setCaUnlockChecked] = useState(false);
+  const [caUnlockLoading, setCaUnlockLoading] = useState(false);
+  const [caUnlockError, setCaUnlockError] = useState("");
+  const [caUnlockPriceLabel, setCaUnlockPriceLabel] = useState("£0.99");
+
+  // Cache billing eligibility on first render to avoid rapid toggling during PaymentRequest UI.
+  // (On some devices, display-mode/referrer signals can momentarily change and cause the overlay to flash.)
+  const caBillingEligible = useMemo(() => caCanUsePlayBilling(), []);
+
+
+  const caStoreUnlockLocally = () => {
+    try { localStorage.setItem(CA_UNLOCK_STORAGE_KEY, "1"); } catch { /* ignore */ }
+  };
+
+  const caGetPlayBillingService = async () => {
+  if (!caBillingEligible) throw new Error("billing_unavailable");
+
+  const getDgs =
+    (typeof navigator !== "undefined" && typeof navigator.getDigitalGoodsService === "function")
+      ? navigator.getDigitalGoodsService.bind(navigator)
+      : (typeof window !== "undefined" && typeof window.getDigitalGoodsService === "function")
+        ? window.getDigitalGoodsService.bind(window)
+        : null;
+
+  if (!getDgs) throw new Error("billing_unavailable");
+
+  // Retry: on some installs, DGS temporarily returns "client app unavailable"
+  let lastErr;
+  for (let i = 0; i < 8; i++) {
+    try {
+      return await getDgs(CA_PLAY_BILLING_STORE_ID);
+    } catch (e) {
+      lastErr = e;
+      const msg = String(e?.message || e || "").toLowerCase();
+      if (!msg.includes("client app unavailable")) throw e;
+      await new Promise((r) => setTimeout(r, 600));
+    }
+  }
+  throw lastErr || new Error("client app unavailable");
+};
+
+  const caFormatPrice = (item) => {
+    try {
+      if (!item?.price?.currency || typeof item?.price?.value !== "number") return null;
+      return new Intl.NumberFormat(navigator.language || "en-GB", {
+        style: "currency",
+        currency: item.price.currency,
+      }).format(item.price.value);
+    } catch {
+      return null;
+    }
+  };
+
+  const caCheckEntitlement = async (service) => {
+  try {
+    const purchases = await service.listPurchases();
+
+    const has = Array.isArray(purchases) && purchases.some((p) => {
+      const id =
+        p?.sku ||
+        p?.productId ||
+        p?.itemId ||
+        p?.product ||
+        p?.id ||
+        "";
+
+      return id === CA_BASIC_UNLOCK_PRODUCT_ID || id === CA_BASIC_UNLOCK_PURCHASE_OPTION_ID;
+    });
+
+    if (has) {
+      setCaUnlocked(true);
+      caStoreUnlockLocally();
+      return true;
+    }
+  } catch {
+    // ignore
+  }
+  return false;
+};
   // Show the About screen automatically on the very first launch (after install).
   // After the user closes it once, we remember that choice in localStorage.
   const closeAbout = () => {
@@ -947,110 +1060,207 @@ export default function App() {
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const [showProInfo, setShowProInfo] = useState(false);
   const [shareStatus, setShareStatus] = useState("");
-  const [isPro, setIsPro] = useState(true);
+  const [homeView, setHomeView] = useState("setup");
+  const [showMainMenu, setShowMainMenu] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [isPro, setIsPro] = useState(false);
   
 
-const CA_PRO_UNLOCK_PRODUCT_ID = "pro_unlock";
-  const CA_UNLOCK_STORAGE_KEY = "ca_pro_unlocked_v1";
-  const [billingReady, setBillingReady] = useState(false);
-  const [restoreMessage, setRestoreMessage] = useState("");
-
+// Pro entitlement is decided at build-time (two-app model):
+  // - ClearAhead Basic: VITE_CLEARAHEAD_EDITION="basic" (or unset)
+  // - ClearAhead Pro:   VITE_CLEARAHEAD_EDITION="pro"
+  // No in-app purchases, no restore, no store/billing bridges.
+  const CA_EDITION = (import.meta.env.VITE_CLEARAHEAD_EDITION || import.meta.env.VITE_CLEARAHEAD_PRO || "pro");
+  const IS_PRO_BUILD = String(CA_EDITION).toLowerCase() === "pro" || String(CA_EDITION).toLowerCase() === "true" || String(CA_EDITION) === "1";
   useEffect(() => {
-    try {
-      const unlocked = localStorage.getItem(CA_UNLOCK_STORAGE_KEY);
-      if (unlocked === "1") {
-        setIsPro(true);
-      }
-    } catch {}
-  }, []);
+    // Only Basic uses the unlock. Pro stays separate.
+    if (IS_PRO_BUILD) { setCaUnlocked(true); setCaUnlockChecked(true); return; }
 
+    // Never run billing checks on platforms without Play Billing bridge (Windows/web).
+    if (!caBillingEligible) { setCaUnlockChecked(true); return; }
+
+    let cancelled = false;
+
+    const init = async () => {
+      setCaUnlockError("");
+      setCaUnlockChecked(false);
+
+      // Fast path: local cache
+      try {
+        if (localStorage.getItem(CA_UNLOCK_STORAGE_KEY) === "1") {
+          setCaUnlocked(true);
+          setCaUnlockChecked(true);
+          return;
+        }
+      } catch {
+        // ignore
+      }
+
+      setCaUnlockLoading(true);
+      try {
+  // wait briefly after app launch so Play Billing service is ready
+  await new Promise(r => setTimeout(r, 600));
+
+  const service = await caGetPlayBillingService();
+
+        // Price label (best effort)
+        try {
+          const details = await service.getDetails([CA_BASIC_UNLOCK_SKU]);
+          if (Array.isArray(details) && details[0]) {
+            const formatted = caFormatPrice(details[0]);
+            if (formatted && !cancelled) setCaUnlockPriceLabel(formatted);
+          }
+        } catch {
+          // ignore
+        }
+
+        await caCheckEntitlement(service);
+      } catch (e) {
+        if (!cancelled) setCaUnlockError("Purchases are only available in the installed Android app.");
+      } finally {
+        if (!cancelled) {
+          setCaUnlockLoading(false);
+          setCaUnlockChecked(true);
+        }
+      }
+    };
+
+    init();
+
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [IS_PRO_BUILD]);
+
+  // Show unlock overlay only after we've checked purchase state (prevents 1-frame flash / undefined var)
+  const caShowUnlockOverlay = (!IS_PRO_BUILD) && (!caUnlocked) && caUnlockChecked && caBillingEligible;
+  const caHandleBuyUnlock = async () => {
+  setCaUnlockError("");
+  setCaUnlockLoading(true);
+
+  try {
+    if (typeof window === "undefined" || typeof window.PaymentRequest !== "function") {
+      throw new Error("payment_request_unavailable");
+    }
+
+    const service = await caGetPlayBillingService();
+
+    const methodData = [{
+      supportedMethods: CA_PLAY_BILLING_STORE_ID, // should be "https://play.google.com/billing"
+      data: { sku: CA_BASIC_UNLOCK_PRODUCT_ID },
+    }];
+
+    // Use a neutral total; Play shows the real price from Console.
+    const details = {
+      total: {
+        label: "ClearAhead Basic Unlock",
+        amount: { currency: "GBP", value: "0.00" },
+      },
+    };
+
+    const request = new window.PaymentRequest(methodData, details);
+
+    // Optional but helps some devices fail early instead of “cancelled”
+    if (typeof request.canMakePayment === "function") {
+      const canPay = await request.canMakePayment();
+      if (!canPay) throw new Error("cannot_make_payment");
+    }
+
+    const response = await request.show();
+
+    // ---- IMPORTANT: acknowledge purchase token (non-consumable) ----
+    // Token location can vary; try the known spots safely.
+    const token =
+      response?.details?.purchaseToken ||
+      response?.details?.token ||
+      response?.details?.purchase_token ||
+      response?.details?.paymentMethodData?.token ||
+      response?.details?.paymentMethodData?.purchaseToken;
+
+    if (token) {
+      try {
+        // Digital Goods API supports acknowledge in TWA context
+        if (typeof service.acknowledge === "function") {
+          await service.acknowledge(token);
+        }
+      } catch (_) {
+        // ignore ack errors; entitlement check below is the source of truth
+      }
+    }
+
+    try { await response.complete("success"); } catch { /* ignore */ }
+
+    // Wait for entitlement to appear
+    let ok = false;
+    for (let i = 0; i < 8; i++) {
+      await new Promise((r) => setTimeout(r, 600));
+      ok = await caCheckEntitlement(service);
+      if (ok) break;
+    }
+    if (!ok) throw new Error("no_entitlement");
+
+    setCaUnlocked(true);
+    caStoreUnlockLocally();
+
+  } catch (e) {
+    const msg = String(e?.message || e || "").toLowerCase();
+
+    if (msg.includes("already") || msg.includes("owned")) {
+      try {
+        const service2 = await caGetPlayBillingService();
+        await new Promise((r) => setTimeout(r, 400));
+        const ok = await caCheckEntitlement(service2);
+        if (ok) {
+          setCaUnlocked(true);
+          caStoreUnlockLocally();
+          setCaUnlockError("");
+          return;
+        }
+      } catch (_) {}
+    }
+
+    setCaUnlockError("Billing error: " + String(e?.message || e || "unknown"));
+  } finally {
+    setCaUnlockLoading(false);
+  }
+};
+
+  const caHandleRestoreUnlock = async () => {
+  setCaUnlockError("");
+  setCaUnlockLoading(true);
+
+  try {
+    const service = await caGetPlayBillingService();
+
+    // Pull purchases directly and match by product id safely
+    const purchases = (await service.listPurchases?.()) || [];
+    const hit = purchases.find((p) => {
+      const id = p?.sku || p?.productId || p?.itemId || p?.product || "";
+      return id === CA_BASIC_UNLOCK_PRODUCT_ID || id === CA_BASIC_UNLOCK_PURCHASE_OPTION_ID;
+    });
+
+    if (!hit) {
+      setCaUnlockError("No purchase found on this Google account yet.");
+      return;
+    }
+
+    // If we have a token and acknowledge exists, acknowledge silently (safe)
+    const token = hit?.purchaseToken || hit?.token;
+    if (token && typeof service.acknowledge === "function") {
+      try { await service.acknowledge(token); } catch (_) {}
+    }
+
+    setCaUnlocked(true);
+    caStoreUnlockLocally();
+    setCaUnlockError("");
+  } catch (e) {
+  setCaUnlockError("Restore error: " + String(e?.message || e || "unknown"));
+} finally {
+    setCaUnlockLoading(false);
+  }
+};
   useEffect(() => {
-    try {
-      const ua = navigator.userAgent || "";
-      const isAndroid = /Android/i.test(ua);
-      const hasDGS =
-        typeof navigator.getDigitalGoodsService === "function" ||
-        typeof window.getDigitalGoodsService === "function";
-
-      setBillingReady(isAndroid && hasDGS);
-    } catch {
-      setBillingReady(false);
-    }
-  }, []);
-
-  async function handleProUnlock() {
-    setRestoreMessage("");
-
-    try {
-      if (!billingReady || typeof window.PaymentRequest !== "function") {
-        setRestoreMessage("Billing not available on this device.");
-        return;
-      }
-
-      const methodData = [
-        {
-          supportedMethods: "https://play.google.com/billing",
-          data: { sku: CA_PRO_UNLOCK_PRODUCT_ID },
-        },
-      ];
-
-      const details = {
-        total: {
-          label: "ClearAhead Pro Unlock",
-          amount: { currency: "GBP", value: "2.99" },
-        },
-      };
-
-      const request = new window.PaymentRequest(methodData, details);
-      const response = await request.show();
-      await response.complete("success");
-
-      localStorage.setItem(CA_UNLOCK_STORAGE_KEY, "1");
-      setIsPro(true);
-      setRestoreMessage("Pro unlocked successfully.");
-    } catch (e) {
-      setRestoreMessage("Purchase cancelled or failed.");
-    }
-  }
-
-  async function handleRestorePurchase() {
-    setRestoreMessage("");
-
-    try {
-      const getDGS =
-        navigator.getDigitalGoodsService || window.getDigitalGoodsService;
-
-      if (!getDGS) {
-        setRestoreMessage("Billing not available on this device.");
-        return;
-      }
-
-      const service = await getDGS.call(navigator, "https://play.google.com/billing");
-      const purchases = await service.listPurchases();
-
-      const found = purchases.find((p) => {
-        const id = p.itemId || p.productId || p.sku || p.product || "";
-        return id === CA_PRO_UNLOCK_PRODUCT_ID;
-      });
-
-      if (found) {
-        localStorage.setItem(CA_UNLOCK_STORAGE_KEY, "1");
-        setIsPro(true);
-        setRestoreMessage("Purchase restored successfully.");
-      } else {
-        setRestoreMessage("No purchase found on Google account.");
-      }
-    } catch (e) {
-      setRestoreMessage("Restore failed.");
-    }
-  }
-  // --- Browser Block Gate (prevents “free browser access” to the full app) ---
-  const caShouldBlockBrowser = !caIsProbablyTWA();
-  if (caShouldBlockBrowser) {
-    return <CABrowserBlockScreen />;
-  }
-  // ---------------------------------------------------------------------
-
+    setIsPro(IS_PRO_BUILD);
+  }, [IS_PRO_BUILD]);
   // Pro lookahead (Pro can choose 5–12 weeks; Basic is locked to 5 weeks)
   const [proLookaheadWeeks, setProLookaheadWeeks] = useState(5);
 
@@ -1132,12 +1342,72 @@ async function handleShare() {
     } catch (e) {
       // User cancelled share, or browser blocked
       setShareStatus("");
+    } finally {
+      setShowMainMenu(false);
     }
   }
+
+  function handleLeaveReview() {
+    try {
+      setShowMainMenu(false);
+      const reviewUrl = "https://play.google.com/store/apps/details?id=app.clearahead.pro&showAllReviews=true";
+      window.open(reviewUrl, "_blank", "noopener,noreferrer");
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  function clearAllData() {
+    setShowResetConfirm(true);
+    return;
+
+    try {
+      localStorage.clear();
+    } catch (e) {
+      // ignore
+    }
+    window.location.reload();
+  }
+
   function goTo(nextStep) {
   setNavFrom(nextStep > step ? "forward" : "back");
   setStep(nextStep);
+
+  // Add a history entry so Android back doesn’t exit the TWA
+  try {
+    window.history.pushState({ caStep: nextStep }, "", `#step-${nextStep}`);
+  } catch {}
 }
+
+// Android back button/gesture support (TWA/PWA): navigate steps instead of exiting
+useEffect(() => {
+  try {
+    window.history.replaceState({ caStep: step }, "", `#step-${step}`);
+  } catch {}
+
+  const onPop = (e) => {
+    const s = e?.state?.caStep;
+
+    // If we don't have a stored step (e.g., first entry), fall back to Overview
+    if (!s) {
+      if (step !== 1) {
+        setNavFrom("back");
+        setStep(1);
+        try {
+          window.history.pushState({ caStep: 1 }, "", `#step-1`);
+        } catch {}
+      }
+      return;
+    }
+
+    setNavFrom("back");
+    setStep(s);
+  };
+
+  window.addEventListener("popstate", onPop);
+  return () => window.removeEventListener("popstate", onPop);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [step]);
 
 // Always start each screen at the top (prevents “landing halfway down”)
 // Only scroll to top when we CHANGE steps (not while typing on a page)
@@ -1180,6 +1450,13 @@ useEffect(() => {
 }, []);
 
 
+
+  useEffect(() => {
+    if (step !== 1) {
+      setShowMainMenu(false);
+      setHomeView("setup");
+    }
+  }, [step]);
 
 // Bills UI: when switching bill groups, close any open bill editor
 useEffect(() => {
@@ -2147,7 +2424,8 @@ const labelStyle = {
 
   const subLabel = {
   display: "block",
-  fontSize: 13,
+  fontSize: 12,
+    minHeight: 42,
                   fontWeight: 900,
   opacity: 0.82,
   color: "rgba(241,245,249,0.85)",
@@ -2165,6 +2443,52 @@ const labelStyle = {
     "0 10px 24px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.03) inset",
 };
 
+  const homeQuickButtonStyle = {
+    width: "100%",
+    boxSizing: "border-box",
+    display: "inline-flex",
+    justifyContent: "center",
+    textAlign: "center",
+    cursor: "pointer",
+    appearance: "none",
+    WebkitAppearance: "none",
+    color: "white",
+    alignItems: "center",
+    gap: 0,
+    lineHeight: 1.15,
+    whiteSpace: "nowrap",
+    padding: "10px 12px",
+    borderRadius: 999,
+    border: "1px solid rgba(94,234,212,0.35)",
+    background: "linear-gradient(135deg, rgba(45,212,191,0.24), rgba(20,184,166,0.24))",
+    boxShadow: "0 10px 24px rgba(20,184,166,0.14)",
+    opacity: 0.98,
+    fontSize: 12,
+    minHeight: 42,
+    fontWeight: 900,
+  };
+
+  const menuButtonStyle = {
+    width: "100%",
+    textAlign: "left",
+    padding: "10px 12px",
+    borderRadius: 12,
+    border: "none",
+    background: "transparent",
+    color: "rgba(241,245,249,0.96)",
+    fontWeight: 800,
+    cursor: "pointer",
+    display: "block",
+  };
+
+  const menuAccentButtonStyle = {
+    ...menuButtonStyle,
+    border: "1px solid rgba(168,85,247,0.45)",
+    background: "linear-gradient(135deg, rgba(168,85,247,0.98), rgba(124,58,237,0.98))",
+    color: "white",
+    boxShadow: "0 12px 28px rgba(124,58,237,0.22)",
+  };
+
   const helpBox = {
   marginTop: 12,
   padding: 14,
@@ -2181,7 +2505,7 @@ const labelStyle = {
   function renderHelp(title, lines) {
     return (
       <div style={helpBox}>
-        <div style={{ fontWeight: 900, marginBottom: 6 }}>{title}</div>
+<div style={{ fontWeight: 900, marginBottom: 6 }}>{title}</div>
         <ul style={{ marginTop: 0, marginBottom: 0, paddingLeft: 18, fontSize: 12, opacity: 0.92 }}>
           {lines.map((t, i) => (
             <li key={i} style={{ marginBottom: 6 }}>{t}</li>
@@ -2193,7 +2517,6 @@ const labelStyle = {
 
   function renderStepper(activeStep) {
   let steps = [
-    { n: 1, label: "Overview" },
     { n: 2, label: "Income" },
     { n: 3, label: "Fixed bills" },
     { n: 4, label: "Extras" },
@@ -2218,20 +2541,18 @@ const labelStyle = {
     border: "1px solid rgba(255,255,255,0.12)",
     background: active ? "rgba(47,122,127,0.28)" : "rgba(0,0,0,0.20)",
     opacity: active ? 1 : 0.9,
-    fontSize: 13,
+    fontSize: 12,
+    minHeight: 42,
     fontWeight: 900,
   });
 
   // Custom layout on Page 1: tidy grid + full-width calendar
   if (activeStep === 1) {
     const gridItems = [
-      { n: 1, label: "Overview" },
-      { n: 5, label: "Review" },
       { n: 2, label: "Income" },
       { n: 3, label: "Fixed bills" },
     ];
 
-    if (isPro) gridItems.push({ n: 6, label: "Calendar", full: true });
 
     return (
       <div
@@ -2251,6 +2572,7 @@ const labelStyle = {
               key={s.n}
               onClick={() => setStep(s.n)}
               aria-current={active ? "step" : undefined}
+              className={s.label === "Review" ? "caBtnPurple" : "caBtnTeal"}
               style={{
                 ...stepBtnStyle(active),
                 gridColumn: s.full ? "1 / -1" : undefined,
@@ -2278,7 +2600,12 @@ const labelStyle = {
         }}
       >
         {steps
-          .filter((s) => s.label !== "Extras")
+          .filter((s) => {
+            if (s.label === "Extras" || s.label === "Home") return false;
+            if ((activeStep === 4 || activeStep === 5 || activeStep === 6) && s.label === "Review") return false;
+            if (activeStep === 6 && s.label === "Calendar") return false;
+            return true;
+          })
           .map((s) => {
             const active = s.n === activeStep;
             return (
@@ -2287,6 +2614,7 @@ const labelStyle = {
                 key={s.n}
                 onClick={() => setStep(s.n)}
                 aria-current={active ? "step" : undefined}
+                className={s.label === "Review" ? "caBtnPurple" : "caBtnTeal"}
                 style={{
                   ...stepBtnStyle(active),
                   width: "100%",
@@ -2327,27 +2655,42 @@ const labelStyle = {
         /* Modal scrolling on mobile */
         .caModalOverlay { overflow-y: auto !important; -webkit-overflow-scrolling: touch; align-items: flex-start !important; }
         .caModalCard { max-height: calc(100vh - 32px) !important; overflow-y: auto !important; }
+        .appShell button.caBtnPurple {
+          border: 1px solid rgba(168,85,247,0.45) !important;
+          background: linear-gradient(135deg, rgba(168,85,247,0.98), rgba(124,58,237,0.98)) !important;
+          color: white !important;
+          box-shadow: 0 12px 28px rgba(124,58,237,0.30) !important;
+        }
+        .appShell button.caBtnTeal {
+          border: 1px solid rgba(94,234,212,0.42) !important;
+          background: linear-gradient(135deg, rgba(45,212,191,0.96), rgba(13,148,136,0.96)) !important;
+          color: white !important;
+          box-shadow: 0 12px 28px rgba(13,148,136,0.24) !important;
+        }
+        .appShell button[disabled] {
+          box-shadow: none !important;
+        }
       `}</style>
 <div className="ca-container">
 
       {step === 1 && (
         <div style={cardStyle}>
-          <div className="caHeaderRow" style={{ display: "flex", alignItems: "center", justifyContent: "flex-start", gap: 12 }}>
-            <div className="caHeaderLeft" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0, justifyContent: "center", textAlign: "center" }}>
+          <div className="caHeaderRow" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+            <div className="caHeaderLeft" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0, justifyContent: "center", textAlign: "center", flex: 1 }}>
               <h1 className="caTitle"
                 style={{
-  fontWeight: 900,
-  fontSize: 50,                margin: 0,
-  padding: 0,
-// nearly double size
-  lineHeight: 1,             // keeps it tight vertically
-  color: "#a855f7",
-  WebkitTextStroke: "0.5px rgba(255,255,255,0.55)",  // subtle edge (optional but nice)
-  textShadow:
-    "0 0 6px rgba(255,255,255,0.55), " +
-    "0 0 14px rgba(255,255,255,0.35), " +
-    "0 0 26px rgba(255,255,255,0.18)",
-}}
+                  fontWeight: 900,
+                  fontSize: 50,
+                  margin: 0,
+                  padding: 0,
+                  lineHeight: 1,
+                  color: "#a855f7",
+                  WebkitTextStroke: "0.5px rgba(255,255,255,0.55)",
+                  textShadow:
+                    "0 0 6px rgba(255,255,255,0.55), " +
+                    "0 0 14px rgba(255,255,255,0.35), " +
+                    "0 0 26px rgba(255,255,255,0.18)",
+                }}
               >
                 ClearAhead
               </h1>
@@ -2356,78 +2699,115 @@ const labelStyle = {
               </div>
             </div>
 
-            <div className="caHeaderRight" style={{ display: "inline-flex", alignItems: "center", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
+            <div style={{ position: "relative", flexShrink: 0 }}>
               <button
+                className="caBtnPurple"
                 type="button"
-                onClick={handleShare}
+                aria-label="Open menu"
+                onClick={() => setShowMainMenu((prev) => !prev)}
                 style={{
-                  background: "#8b5cf6",
+                  width: 46,
+                  height: 46,
+                  borderRadius: 14,
+                  border: "1px solid rgba(168,85,247,0.45)",
+                  background: "linear-gradient(135deg, rgba(168,85,247,0.98), rgba(124,58,237,0.98))",
                   color: "white",
-                  border: "none",
-                  padding: "8px 14px",
-                  borderRadius: 999,
-                  fontWeight: 800,
                   cursor: "pointer",
-                  whiteSpace: "normal",
-                display: "block",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: "0 12px 28px rgba(124,58,237,0.30)",
                 }}
               >
-                Share
+                <div style={{ display: "grid", gap: 4 }}>
+                  <span style={{ display: "block", width: 18, height: 2, borderRadius: 99, background: "white" }} />
+                  <span style={{ display: "block", width: 18, height: 2, borderRadius: 99, background: "white" }} />
+                  <span style={{ display: "block", width: 18, height: 2, borderRadius: 99, background: "white" }} />
+                </div>
               </button>
 
-              {!isPro ? (
-                <button
-                  type="button"
-                  onClick={() => setShowProInfo(true)}
-                  title="ClearAhead Pro"
-                  style={{
-                    background: "rgba(168,85,247,0.18)",
-                    color: "rgba(241,245,249,0.96)",
-                    border: "1px solid rgba(168,85,247,0.45)",
-                    padding: "8px 14px",
-                    borderRadius: 999,
-                    fontWeight: 900,
-                    cursor: "pointer",
-                    whiteSpace: "nowrap",
-                    overflowWrap: "normal",
-                  }}
-                >
-                  Go Pro
-                </button>
-              ) : (
+              {showMainMenu && (
                 <div
-                  title="ClearAhead Pro edition"
                   style={{
-                    background: "rgba(168,85,247,0.18)",
-                    color: "rgba(241,245,249,0.96)",
-                    border: "1px solid rgba(168,85,247,0.45)",
-                    padding: "8px 14px",
-                    borderRadius: 999,
-                    fontWeight: 900,
-                    whiteSpace: "nowrap",
+                    position: isNarrowMobile ? "fixed" : "absolute",
+                    top: isNarrowMobile ? 110 : 54,
+                    right: isNarrowMobile ? 16 : 0,
+                    left: isNarrowMobile ? 16 : "auto",
+                    width: isNarrowMobile ? "auto" : 220,
+                    maxWidth: isNarrowMobile ? "none" : "calc(100vw - 48px)",
+                    borderRadius: 18,
+                    border: "1px solid rgba(255,255,255,0.12)",
+                    background: "linear-gradient(180deg, rgba(16,26,58,0.98) 0%, rgba(11,16,38,0.98) 100%)",
+                    boxShadow: "0 20px 44px rgba(0,0,0,0.35)",
+                    padding: 10,
+                    zIndex: 30,
                   }}
                 >
-                  Pro
+                  <div style={{ fontSize: 11, letterSpacing: 0.3, textTransform: "uppercase", opacity: 0.65, padding: "4px 8px 8px" }}>
+                    Menu
+                  </div>
+
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {!isPro ? (
+                      <button
+                        type="button"
+                        onClick={() => { setShowProInfo(true); setShowMainMenu(false); }}
+                        style={menuButtonStyle}
+                      >
+                        Go Pro
+                      </button>
+                    ) : (
+                      <div style={{ ...menuButtonStyle, cursor: "default", opacity: 0.72 }}>
+                        Pro
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => { setShowAbout(true); setShowMainMenu(false); }}
+                      style={menuButtonStyle}
+                    >
+                      About
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => { setShowDisclaimer(true); setShowMainMenu(false); }}
+                      style={menuButtonStyle}
+                    >
+                      Disclaimer
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={clearAllData}
+                      style={menuButtonStyle}
+                    >
+                      Reset data
+                    </button>
+
+                    <div style={{ height: 4 }} />
+
+                    <button
+                      type="button"
+                      onClick={handleShare}
+                      className="caBtnPurple"
+                      style={menuAccentButtonStyle}
+                    >
+                      Share
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleLeaveReview}
+                      className="caBtnPurple"
+                      style={menuAccentButtonStyle}
+                    >
+                      Give us a review
+                    </button>
+                  </div>
                 </div>
               )}
-
-              <button
-                type="button"
-                onClick={() => setShowAbout(true)}
-                style={{
-                  background: "#8b5cf6",
-                  color: "white",
-                  border: "none",
-                  padding: "8px 14px",
-                  borderRadius: 999,
-                  fontWeight: 800,
-                  cursor: "pointer",
-                  whiteSpace: "normal",
-                overflowWrap: "anywhere",
-                }}
-              >
-                About
-              </button>
             </div>
           </div>
 
@@ -2436,452 +2816,344 @@ const labelStyle = {
               {shareStatus}
             </div>
           )}
-          <div style={{ marginTop: 10 }}>
-            <div style={{ fontSize: 12, fontWeight: 800, color: "rgba(255,255,255,0.95)", marginBottom: 6 }}>
-              Quick action buttons
+
+          {showResetConfirm && (
+            <div className="caModalOverlay" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, zIndex: 1000 }}>
+              <div className="caModalCard" style={{ width: "100%", maxWidth: 420, borderRadius: 20, border: "1px solid rgba(255,255,255,0.12)", background: "linear-gradient(180deg, rgba(16,26,58,0.98) 0%, rgba(11,16,38,0.98) 100%)", boxShadow: "0 20px 44px rgba(0,0,0,0.35)", padding: 18 }}>
+                <div style={{ fontWeight: 900, fontSize: 20, marginBottom: 10 }}>Reset data</div>
+                <div style={{ lineHeight: 1.5, opacity: 0.92 }}>
+                  This will reset all your ClearAhead data and let you start fresh.<br /><br />
+                  This cannot be undone. Are you sure?
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 18 }}>
+                  <button type="button" onClick={() => setShowResetConfirm(false)} style={menuButtonStyle}>Cancel</button>
+                  <button type="button" className="caBtnPurple" onClick={confirmClearAllData} style={{ ...menuAccentButtonStyle, textAlign: "center" }}>Reset data</button>
+                </div>
+              </div>
             </div>
-            <div style={{ display: "grid", gap: 8 }}>
+          )}
+
+          <div style={{ marginTop: 14 }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: "rgba(255,255,255,0.95)", marginBottom: 6 }}>
+              Quick actions
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", columnGap: 8, rowGap: 8, alignItems: "stretch" }}>
               <button
                 type="button"
                 onClick={() => { setFocusSection("spend"); goTo(4); }}
-                style={{
-                  width: "100%",
-                  boxSizing: "border-box",
-                  display: "inline-flex",
-                  justifyContent: "center",
-                  textAlign: "center",
-                  cursor: "pointer",
-                  appearance: "none",
-                  WebkitAppearance: "none",
-                  color: "inherit",
-                  alignItems: "center",
-                  gap: 0,
-                  padding: "10px 12px",
-                  borderRadius: 999,
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  background: "rgba(0,0,0,0.20)",
-                  opacity: 0.92,
-                  fontSize: 13,
-                  fontWeight: 900,
-                }}
+                className="caBtnTeal"
+                style={homeQuickButtonStyle}
               >
-                <div
-                  style={{
-                    width: 18,
-                    height: 18,
-                    borderRadius: 999,
-                    display: "none",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontWeight: 900,
-                    fontSize: 13,
-                  fontWeight: 900,
-                    background: "rgba(255,255,255,0.10)",
-                  }}
-                >
-                  L
-                </div>
-                <div style={{ fontWeight: 800 }}>Log spending</div>
+                Log spending
               </button>
 
               <button
                 type="button"
                 onClick={() => { setFocusSection("whatif"); goTo(4); }}
                 title="What if I buy this?"
-                style={{
-                  width: "100%",
-                  boxSizing: "border-box",
-                  display: "inline-flex",
-                  justifyContent: "center",
-                  textAlign: "center",
-                  cursor: "pointer",
-                  appearance: "none",
-                  WebkitAppearance: "none",
-                  color: "inherit",
-                  alignItems: "center",
-                  gap: 0,
-                  padding: "10px 12px",
-                  borderRadius: 999,
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  background: "rgba(0,0,0,0.20)",
-                  opacity: 0.92,
-                  fontSize: 13,
-                  fontWeight: 900,
-                }}
+                className="caBtnTeal"
+                style={homeQuickButtonStyle}
               >
-                <div
-                  style={{
-                    width: 18,
-                    height: 18,
-                    borderRadius: 999,
-                    display: "none",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontWeight: 900,
-                    fontSize: 12,
-                    background: "rgba(255,255,255,0.10)",
-                  }}
-                >
-                  W
-                </div>
-                <div style={{ fontWeight: 800 }}>What if I buy this?</div>
+                What if I buy this?
               </button>
 
               <button
                 type="button"
                 onClick={() => { setFocusSection("goals"); goTo(4); }}
-                style={{
-                  display: "inline-flex",
-                  cursor: "pointer",
-                  appearance: "none",
-                  WebkitAppearance: "none",
-                  color: "inherit",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  textAlign: "center",
-                  lineHeight: 1.1,
-                  
-                  gap: 0,
-                  padding: "6px 10px",
-                  borderRadius: 999,
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  background: "rgba(0,0,0,0.20)",
-                  opacity: 0.92,
-                  fontSize: 12,
-                }}
+                className="caBtnTeal"
+                style={{ ...homeQuickButtonStyle, gridColumn: "1 / -1" }}
               >
-                <div
-                  style={{
-                    width: 18,
-                    height: 18,
-                    borderRadius: 999,
-                    display: "none",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontWeight: 900,
-                    fontSize: 12,
-                    background: "rgba(255,255,255,0.10)",
-                  }}
-                >
-                  G
-                </div>
-                <div style={{ fontWeight: 800 }}>Savings goals</div>
+                Savings goals
               </button>
             </div>
           </div>
 
           {renderStepper(1)}
-          {renderHelp("What to do here", ["Enter the date you want to start from (today is fine).", "Enter your current bank balance right now.", "Then tap Continue to add income and bills."])}
 
+          {homeView === "setup" ? (
+            <>
+              {renderHelp("What to do here", ["Enter the date you want to start from (today is fine).", "Enter your current bank balance right now.", "Then tap Continue to add income and bills."])}
 
-          <div
-  style={{
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 8,
-    marginTop: 10,
-    padding: "6px 10px",
-    borderRadius: 999,
-    border: "1px solid rgba(226,232,240,0.12)",
-    background: "rgba(255,255,255,0.06)",
-    fontSize: 12,
-    opacity: 0.9,
-  }}
->
-  Page 1 of 5
-</div>
-          <p style={{ opacity: 0.88, marginTop: 8 }}>Bills come first. ClearAhead shows what may be available after we look ahead for the next {effectiveLookaheadWeeks} weeks.</p>
-
-
-
-          <div style={{ marginTop: 16, display: "grid", gap: 12, width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
-            <div>
-              <label style={subLabel}>Start date</label>
-              <input type="date" value={startDate} onChange={(e) => {
-                const v = e.target.value;
-                setStartDate(v);
-                setStartDateAuto(v === todayISO());
-              }} style={inputStyle} />
-            </div>
-
-            <div>
-              <label style={subLabel}>Current balance ({caCurrencySymbol})</label>
-              <input value={balance} onChange={(e) => setBalance(sanitizeMoneyInput(e.target.value))} inputMode="decimal" placeholder="e.g. 943.33" style={inputStyle} />
-            </div>
-
-            <button
-  disabled={!canContinueStep1}
-  onClick={() => goTo(2)}
-  style={{
-    marginTop: 8,
-    padding: 12,
-    borderRadius: 12,
-    border: "none",
-    cursor: canContinueStep1 ? "pointer" : "not-allowed",
-    opacity: canContinueStep1 ? 1 : 0.45,
-    background:
-      "linear-gradient(135deg, rgba(168,85,247,0.95), rgba(99,102,241,0.95))",
-    color: "white",
-    boxShadow: "0 12px 30px rgba(99,102,241,0.45)",
-    fontWeight: 800,
-    width: "100%",
-    boxSizing: "border-box",
-  }}
->
-  Continue
-</button>
-
-<button
-  onClick={() => goTo(5)}
-  style={{
-    marginTop: 10,
-    padding: 10,
-    borderRadius: 12,
-    border: "1px solid rgba(255,255,255,0.18)",
-    background: "rgba(255,255,255,0.06)",
-    color: "white",
-    width: "100%",
-    boxSizing: "border-box",
-    cursor: "pointer",
-    opacity: 0.92,
-    fontWeight: 800,
-  }}
->
-  Go to Review
-</button>
-
-            <div style={{ fontSize: 12, opacity: 0.65 }}>v1.20</div>
-
-          {/* Pro feature: Lookahead window slider (Basic locked to 5 weeks) */}
-          <div style={{ marginTop: 14, padding: "10px 12px", borderRadius: 14, border: "1px solid rgba(148,163,184,0.22)", background: "rgba(15,23,42,0.35)" }}>
-            <div style={{ fontWeight: 900, fontSize: 13, opacity: 0.92 }}>Lookahead window</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginTop: 8 }}>
-              <input
-                type="range"
-                min={5}
-                max={12}
-                step={1}
-                value={effectiveLookaheadWeeks}
-                disabled={!isPro}
-                onChange={(e) => {
-                  const n = parseInt(e.target.value, 10);
-                  setProLookaheadWeeks(Number.isFinite(n) ? Math.min(12, Math.max(5, n)) : 5);
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  marginTop: 10,
+                  padding: "6px 10px",
+                  borderRadius: 999,
+                  border: "1px solid rgba(226,232,240,0.12)",
+                  background: "rgba(255,255,255,0.06)",
+                  fontSize: 12,
+                  opacity: 0.9,
                 }}
-                style={{ width: "100%", maxWidth: 260, boxSizing: "border-box", cursor: isPro ? "pointer" : "not-allowed" }}
-              />
-              <div style={{ fontWeight: 900, fontSize: 13 }}>
-                {effectiveLookaheadWeeks} weeks
+              >
+                Page 1 of 5
               </div>
-              {!isPro && (
-                <div style={{ fontSize: 12, opacity: 0.82 }}>
-                  Basic is locked to 5 weeks • Pro can extend to 12
+
+              <p style={{ opacity: 0.88, marginTop: 8 }}>
+                Start here first. Once these two details are entered, ClearAhead can build your short-term picture more clearly.
+              </p>
+
+              <div style={{ marginTop: 16, display: "grid", gap: 12, width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
+                <div>
+                  <label style={subLabel}>Start date</label>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setStartDate(v);
+                      setStartDateAuto(v === todayISO());
+                    }}
+                    style={inputStyle}
+                  />
                 </div>
-              )}
-            </div>
-          </div>
-<div style={{ marginTop: 10, padding: 12, borderRadius: 12, border: "1px solid rgba(255,255,255,0.10)", background: "rgba(0,0,0,0.12)", width: "100%", boxSizing: "border-box" }}>
-            <div style={{ fontSize: 12, opacity: 0.8 }}>Window</div>
-            <div style={{ fontWeight: 800 }}>
-              {displayUKDate(startDate)} → {displayUKDate(lookahead.windowEndISO)}
-            </div>
 
-            <div
-  style={{
-    marginTop: 14,
-    fontSize: 12,
-    letterSpacing: 0.3,
-    textTransform: "uppercase",
-    opacity: 0.65,
-  }}
->
-  Available now
-</div>
+                <div>
+                  <label style={subLabel}>Current balance ({caCurrencySymbol})</label>
+                  <input
+                    value={balance}
+                    onChange={(e) => setBalance(sanitizeMoneyInput(e.target.value))}
+                    inputMode="decimal"
+                    placeholder="e.g. 943.33"
+                    style={inputStyle}
+                  />
+                </div>
 
-<div
-  style={{
-    fontSize: 40,
-    fontWeight: 900,
-    letterSpacing: -0.8,
-    marginTop: 2,
-    color: "rgba(241,245,249,0.98)",
-  }}
->
-  {formatMoney(lookahead.mayBeAvailable.toFixed(2))}
-</div>
+                <button
+                  className="caBtnPurple"
+                  disabled={!canContinueStep1}
+                  onClick={() => goTo(2)}
+                  style={{
+                    marginTop: 8,
+                    padding: 12,
+                    borderRadius: 12,
+                    border: "none",
+                    cursor: canContinueStep1 ? "pointer" : "not-allowed",
+                    opacity: canContinueStep1 ? 1 : 0.45,
+                    background: "linear-gradient(135deg, rgba(168,85,247,0.95), rgba(99,102,241,0.95))",
+                    color: "white",
+                    boxShadow: "0 12px 30px rgba(99,102,241,0.45)",
+                    fontWeight: 800,
+                    width: "100%",
+                    boxSizing: "border-box",
+                  }}
+                >
+                  Continue
+                </button>
 
-<div style={{ marginTop: 10, fontSize: 12, letterSpacing: 0.3, textTransform: "uppercase", opacity: 0.65 }}>
-  Safe number
-</div>
-<div style={{ fontSize: 32, fontWeight: 900, letterSpacing: -0.6, marginTop: 2, color: "rgba(241,245,249,0.98)" }}>
-  {formatMoney(Math.max(0, lookahead.mayBeAvailable - 250).toFixed(2))}
-</div>
-{lookahead.mayBeAvailable > 0 && lookahead.mayBeAvailable - 250 <= 0 && (
-  <div style={{ marginTop: 8, fontSize: 12, opacity: 0.88, lineHeight: 1.35 }}>
-    <div style={{ fontWeight: 800 }}>You still have Available now to use.</div>
-    <div>Safe to spend is £0 because ClearAhead is holding back a little for safety.</div>
-  </div>
-)}
-<div style={{ marginTop: 6, fontSize: 12, opacity: 0.78, lineHeight: 1.35 }}>
-  Safe number is a cautious guide — it leaves a small {formatMoney(250)} buffer aside for surprises.
-</div>
-<div style={{ marginTop: 6, fontSize: 12, opacity: 0.78, lineHeight: 1.35 }}>
-  Available now is your projected amount across the next {effectiveLookaheadWeeks} weeks, before the safety buffer.
-</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 2 }}>
+                  <button
+                    className="caBtnPurple"
+                    onClick={() => setHomeView("overview")}
+                    style={{
+                      padding: 10,
+                      borderRadius: 12,
+                      border: "1px solid rgba(168,85,247,0.45)",
+                      color: "white",
+                      width: "100%",
+                      boxSizing: "border-box",
+                      cursor: "pointer",
+                      fontWeight: 800,
+                    }}
+                  >
+                    Overview
+                  </button>
 
-            <div style={{ marginTop: 10, fontSize: 12, opacity: 0.8 }}>Lowest projected balance in next {effectiveLookaheadWeeks} weeks</div>
-            <div style={{ fontWeight: 800 }}>
-              {formatMoney(lookahead.lowest.toFixed(2))} on {displayUKDate(lookahead.lowestISO)}
-            </div>
+                  <button
+                    className="caBtnPurple"
+                    onClick={() => goTo(5)}
+                    style={{
+                      padding: 10,
+                      borderRadius: 12,
+                      border: "1px solid rgba(168,85,247,0.45)",
+                      color: "white",
+                      width: "100%",
+                      boxSizing: "border-box",
+                      cursor: "pointer",
+                      fontWeight: 800,
+                    }}
+                  >
+                    Review
+                  </button>
+                </div>
 
-            <div style={{ marginTop: 10, fontSize: 12, opacity: 0.8 }}>Confidence</div>
-            <div style={{ fontWeight: 800 }}>{lookahead.confidence}</div>
+                <button
+                  className="caBtnPurple"
+                  onClick={() => goTo(6)}
+                  style={{
+                    marginTop: 8,
+                    padding: 10,
+                    borderRadius: 12,
+                    border: "1px solid rgba(168,85,247,0.45)",
+                    color: "white",
+                    width: "100%",
+                    boxSizing: "border-box",
+                    cursor: "pointer",
+                    fontWeight: 800,
+                  }}
+                >
+                  Pro calendar
+                </button>
 
-            <div style={{ marginTop: 8, fontSize: 12, opacity: 0.8 }}>
-              Why this confidence:
-              <ul style={{ marginTop: 6, marginBottom: 0, paddingLeft: 18 }}>
-                {lookahead.reasons.map((r, i) => (
-                  <li key={i} style={{ marginBottom: 4 }}>
-                    {r}
-                  </li>
-                ))}
-              </ul>
-            </div>
+                <div style={{ fontSize: 12, opacity: 0.65 }}>v1.20</div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div
+                style={{
+                  marginTop: 12,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 10,
+                  flexWrap: "wrap",
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: 900, fontSize: 18 }}>Overview</div>
+                  <div style={{ fontSize: 12, opacity: 0.8 }}>
+                    Your 5-week picture is shown here on its own page to keep the home screen cleaner.
+                  </div>
+                </div>
 
-            <div style={{ marginTop: 10, fontSize: 12, opacity: 0.75 }}>
-              Gentle nudge: If possible, keeping a small buffer can help with surprises (repairs, school costs) and future plans.
-            </div>
+                <button
+                  className="caBtnPurple"
+                  type="button"
+                  onClick={() => setHomeView("setup")}
+                  style={{
+                    padding: "8px 12px",
+                    borderRadius: 12,
+                    border: "1px solid rgba(255,255,255,0.18)",
+                    background: "rgba(255,255,255,0.06)",
+                    color: "white",
+                    fontWeight: 800,
+                    cursor: "pointer",
+                  }}
+                >
+                  Back to setup
+                </button>
+              </div>
 
-            {lookahead.lowest < 0 && (
-              <div style={{ marginTop: 12, padding: 10, borderRadius: 12, border: "1px solid rgba(255,170,0,0.35)", background: "rgba(255,170,0,0.10)" }}>
-                <div style={{ fontWeight: 900 }}>⚠️ Tight period detected</div>
-                <div style={{ fontSize: 12, opacity: 0.85, marginTop: 6 }}>
-                  Based on what’s entered (including spending + goals if included), the projection dips below {formatMoney(0)} at least once in the next {effectiveLookaheadWeeks} weeks.
+              <div style={{ marginTop: 14, padding: "10px 12px", borderRadius: 14, border: "1px solid rgba(148,163,184,0.22)", background: "rgba(15,23,42,0.35)" }}>
+                <div style={{ fontWeight: 900, fontSize: 12,
+    minHeight: 42, opacity: 0.92 }}>Lookahead window</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginTop: 8 }}>
+                  <input
+                    type="range"
+                    min={5}
+                    max={12}
+                    step={1}
+                    value={effectiveLookaheadWeeks}
+                    disabled={!isPro}
+                    onChange={(e) => {
+                      const n = parseInt(e.target.value, 10);
+                      setProLookaheadWeeks(Number.isFinite(n) ? Math.min(12, Math.max(5, n)) : 5);
+                    }}
+                    style={{ width: "100%", maxWidth: 260, boxSizing: "border-box", cursor: isPro ? "pointer" : "not-allowed" }}
+                  />
+                  <div style={{ fontWeight: 900, fontSize: 13 }}>
+                    {effectiveLookaheadWeeks} weeks
+                  </div>
+                  {!isPro && (
+                    <div style={{ fontSize: 12, opacity: 0.82 }}>
+                      Basic is locked to 5 weeks • Pro can extend to 12
+                    </div>
+                  )}
                 </div>
               </div>
-            )}
-          </div>
-          <div style={{ marginTop: 14, display: "block", gap: 10 }}>
-  <div style={{ fontWeight: 900, opacity: 0.92, display: "none" }}>Quick actions</div>
 
-  <button
-    onClick={() => {
-  setFocusSection("spend");
-  goTo(4);
-}}
-    style={{
-      display: "none",
-      padding: 12,
-      borderRadius: 14,
-      border: "1px solid rgba(255,255,255,0.18)",
-      background: "rgba(255,255,255,0.06)",
-      color: "white",
-      cursor: "pointer",
-      fontWeight: 900,
-      width: "100%",
-    }}
-  >
-    Log spending
-  </button>
+              <div style={{ marginTop: 10, padding: 12, borderRadius: 12, border: "1px solid rgba(255,255,255,0.10)", background: "rgba(0,0,0,0.12)", width: "100%", boxSizing: "border-box" }}>
+                <div style={{ fontSize: 12, opacity: 0.8 }}>Window</div>
+                <div style={{ fontWeight: 800 }}>
+                  {displayUKDate(startDate)} → {displayUKDate(lookahead.windowEndISO)}
+                </div>
 
-  <button
-    onClick={() => {
-  setFocusSection("whatif");
-  goTo(4);
-}}
-    style={{
-      display: "none",
-      padding: 12,
-      borderRadius: 14,
-      border: "1px solid rgba(255,255,255,0.18)",
-      background: "rgba(255,255,255,0.06)",
-      color: "white",
-      cursor: "pointer",
-      fontWeight: 900,
-      width: "100%",
-    }}
-  >
-    What if I buy this?
-  </button>
+                <div
+                  style={{
+                    marginTop: 14,
+                    fontSize: 12,
+                    letterSpacing: 0.3,
+                    textTransform: "uppercase",
+                    opacity: 0.65,
+                  }}
+                >
+                  Available now
+                </div>
 
-  <button
-    onClick={() => {
-  setFocusSection("goals");
-  // v1.23 — Savings goals quick action should open Extras (step 4), not Bills
-  goTo(4);
-}}
-    style={{
-      display: "none",
-      padding: 12,
-      borderRadius: 14,
-      border: "1px solid rgba(255,255,255,0.18)",
-      background: "rgba(255,255,255,0.06)",
-      color: "white",
-      cursor: "pointer",
-      fontWeight: 900,
-      width: "100%",
-    }}
-  >
-    Savings goals
-  </button>
-<div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 10, width: "100%", boxSizing: "border-box", flexWrap: "wrap" }}>
-  <button
-    type="button"
-    onClick={() => setShowDisclaimer(true)}
-    style={{
-      padding: "6px 12px",
-      borderRadius: 999,
-      border: "1px solid rgba(255,255,255,0.25)",
-      background: "rgba(255,255,255,0.12)",
-      color: "white",
-      fontWeight: 700,
-      cursor: "pointer",
-      fontSize: 12,
-    }}
-  >
-    Disclaimer
-  </button>
+                <div
+                  style={{
+                    fontSize: 40,
+                    fontWeight: 900,
+                    letterSpacing: -0.8,
+                    marginTop: 2,
+                    color: "rgba(241,245,249,0.98)",
+                  }}
+                >
+                  {formatMoney(lookahead.mayBeAvailable.toFixed(2))}
+                </div>
 
-  <button
-    type="button"
-    onClick={() => {
-      const ok = window.confirm(
-        "This will clear ALL your data and let you start fresh.\n\nThis cannot be undone. Are you sure?"
-      );
-      if (!ok) return;
+                <div style={{ marginTop: 10, fontSize: 12, letterSpacing: 0.3, textTransform: "uppercase", opacity: 0.65 }}>
+                  Safe number
+                </div>
+                <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: -0.6, marginTop: 2, color: "rgba(241,245,249,0.98)" }}>
+                  {formatMoney(Math.max(0, lookahead.mayBeAvailable - 250).toFixed(2))}
+                </div>
+                {lookahead.mayBeAvailable > 0 && lookahead.mayBeAvailable - 250 <= 0 && (
+                  <div style={{ marginTop: 8, fontSize: 12, opacity: 0.88, lineHeight: 1.35 }}>
+                    <div style={{ fontWeight: 800 }}>You still have Available now to use.</div>
+                    <div>Safe to spend is £0 because ClearAhead is holding back a little for safety.</div>
+                  </div>
+                )}
+                <div style={{ marginTop: 6, fontSize: 12, opacity: 0.78, lineHeight: 1.35 }}>
+                  Safe number is a cautious guide — it leaves a small {formatMoney(250)} buffer aside for surprises.
+                </div>
+                <div style={{ marginTop: 6, fontSize: 12, opacity: 0.78, lineHeight: 1.35 }}>
+                  Available now is your projected amount across the next {effectiveLookaheadWeeks} weeks, before the safety buffer.
+                </div>
 
-      try {
-        localStorage.clear();
-      } catch (e) {
-        // ignore
-      }
-      window.location.reload();
-    }}
-    style={{
-      padding: "6px 12px",
-      borderRadius: 999,
-      border: "1px solid rgba(255,255,255,0.25)",
-      background: "rgba(255,255,255,0.12)",
-      color: "white",
-      fontWeight: 700,
-      cursor: "pointer",
-      fontSize: 12,
-    }}
-  >
-    Clear all data
-  </button>
-</div>
+                <div style={{ marginTop: 10, fontSize: 12, opacity: 0.8 }}>Lowest projected balance in next {effectiveLookaheadWeeks} weeks</div>
+                <div style={{ fontWeight: 800 }}>
+                  {formatMoney(lookahead.lowest.toFixed(2))} on {displayUKDate(lookahead.lowestISO)}
+                </div>
 
-</div>
-            
-          </div>
+                <div style={{ marginTop: 10, fontSize: 12, opacity: 0.8 }}>Confidence</div>
+                <div style={{ fontWeight: 800 }}>{lookahead.confidence}</div>
+
+                <div style={{ marginTop: 8, fontSize: 12, opacity: 0.8 }}>
+                  Why this confidence:
+                  <ul style={{ marginTop: 6, marginBottom: 0, paddingLeft: 18 }}>
+                    {lookahead.reasons.map((r, i) => (
+                      <li key={i} style={{ marginBottom: 4 }}>
+                        {r}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div style={{ marginTop: 10, fontSize: 12, opacity: 0.75 }}>
+                  Gentle nudge: If possible, keeping a small buffer can help with surprises (repairs, school costs) and future plans.
+                </div>
+
+                {lookahead.lowest < 0 && (
+                  <div style={{ marginTop: 12, padding: 10, borderRadius: 12, border: "1px solid rgba(255,170,0,0.35)", background: "rgba(255,170,0,0.10)" }}>
+                    <div style={{ fontWeight: 900 }}>⚠️ Tight period detected</div>
+                    <div style={{ fontSize: 12, opacity: 0.85, marginTop: 6 }}>
+                      Based on what’s entered (including spending + goals if included), the projection dips below {formatMoney(0)} at least once in the next {effectiveLookaheadWeeks} weeks.
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </div>
       )}
 
       {step === 2 && (
   <div style={cardStyle}>
-    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "flex-start", gap: 12, flexWrap: "wrap" }}>
-          <h2 style={{ marginTop: 0 }}>Income</h2>
-        </div>
+    <h2 style={{ marginTop: 0 }}>Income</h2>
 
     {renderStepper(2)}
 
@@ -3340,6 +3612,7 @@ const labelStyle = {
     )}
 
     <button
+      className="caBtnPurple"
       disabled={!canContinueStep2}
       onClick={() => goTo(3)}
       style={{
@@ -4584,11 +4857,39 @@ const labelStyle = {
 
 
 
-    <button className="caBtn caBtnPrimary" onClick={() => setStep(5)}>
+    <button
+      className="caBtnPurple"
+      onClick={() => setStep(5)}
+      style={{
+        marginTop: 14,
+        display: "block",
+        width: "100%",
+        padding: 12,
+        borderRadius: 12,
+        border: "1px solid rgba(168,85,247,0.45)",
+        color: "white",
+        cursor: "pointer",
+        fontWeight: 800,
+      }}
+    >
       Continue to Review
     </button>
 
-    <button className="caBtn caBtnGhost" onClick={() => setStep(3)}>
+    <button
+      className="caBtnPurple"
+      onClick={() => setStep(3)}
+      style={{
+        marginTop: 10,
+        display: "block",
+        width: "100%",
+        padding: 12,
+        borderRadius: 12,
+        border: "1px solid rgba(168,85,247,0.45)",
+        color: "white",
+        cursor: "pointer",
+        fontWeight: 800,
+      }}
+    >
       Back
     </button>
   </div>
@@ -4676,77 +4977,9 @@ const labelStyle = {
   </div>
 </div>
 
-          <div style={{ ...sectionBox, marginTop: 14 }}>
-            <div style={{ fontWeight: 900, marginBottom: 10 }}>Quick action buttons</div>
-
-            <div style={{ display: "grid", gap: 10 }}>
-              <button
-                type="button"
-                onClick={() => {
-                  setFocusSection("spend");
-                  goTo(4);
-                }}
-                style={{
-                  padding: 12,
-                  borderRadius: 12,
-                  border: "1px solid rgba(255,255,255,0.14)",
-                  background: "rgba(255,255,255,0.06)",
-                  color: "white",
-                  cursor: "pointer",
-                  fontWeight: 900,
-                  width: "100%",
-                  textAlign: "center",
-                }}
-              >
-                Log spending
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setFocusSection("whatif");
-                  goTo(4);
-                }}
-                style={{
-                  padding: 12,
-                  borderRadius: 12,
-                  border: "1px solid rgba(255,255,255,0.14)",
-                  background: "rgba(255,255,255,0.06)",
-                  color: "white",
-                  cursor: "pointer",
-                  fontWeight: 900,
-                  width: "100%",
-                  textAlign: "center",
-                }}
-              >
-                What if I buy this?
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setFocusSection("goals");
-                  goTo(4);
-                }}
-                style={{
-                  padding: 12,
-                  borderRadius: 12,
-                  border: "1px solid rgba(255,255,255,0.14)",
-                  background: "rgba(255,255,255,0.06)",
-                  color: "white",
-                  cursor: "pointer",
-                  fontWeight: 900,
-                  width: "100%",
-                  textAlign: "center",
-                }}
-              >
-                Savings goals
-              </button>
-            </div>
-          </div>
-
           <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
             <button
+              className="caBtnPurple"
               type="button"
               onClick={() => goTo(1)}
               style={{
@@ -4763,7 +4996,7 @@ const labelStyle = {
                 boxShadow: "0 12px 30px rgba(99,102,241,0.35)",
               }}
             >
-              Back to Overview
+              Back to setup
             </button>
 
             </div>
@@ -4781,7 +5014,8 @@ const labelStyle = {
     <div style={{ fontWeight: 900, marginBottom: 6 }}>Pro insights</div>
     <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 8 }}>Pro insights gives you a in depth view of all events over your full window.</div>
 
-    <div style={{ display: "grid", gap: 6, fontSize: 13, opacity: 0.92 }}>
+    <div style={{ display: "grid", gap: 6, fontSize: 12,
+    minHeight: 42, opacity: 0.92 }}>
       <div>
         <span style={{ opacity: 0.8 }}>Total income:</span>{" "}
         <span style={{ fontWeight: 900 }}>{formatMoney((proInsights.incomeTotal || 0).toFixed(2))}</span>
@@ -4830,7 +5064,8 @@ const labelStyle = {
                 background: "rgba(0,0,0,0.16)",
               }}
             >
-              <div style={{ fontSize: 13, opacity: 0.95 }}>{x.label}</div>
+              <div style={{ fontSize: 12,
+    minHeight: 42, opacity: 0.95 }}>{x.label}</div>
               <div style={{ fontWeight: 900 }}>{formatMoney((x.amt || 0).toFixed(2))}</div>
             </div>
           ))}
@@ -4857,7 +5092,8 @@ const labelStyle = {
                 background: "rgba(0,0,0,0.16)",
               }}
             >
-              <div style={{ fontSize: 13, opacity: 0.95 }}>{x.label}</div>
+              <div style={{ fontSize: 12,
+    minHeight: 42, opacity: 0.95 }}>{x.label}</div>
               <div style={{ fontWeight: 900 }}>{formatMoney((x.amt || 0).toFixed(2))}</div>
             </div>
           ))}
@@ -4866,67 +5102,6 @@ const labelStyle = {
     )}
   </div>
 )}
-
-          <button
-            type="button"
-            onClick={() => goTo(2)}
-            style={{
-              marginTop: 16,
-              padding: 10,
-              borderRadius: 12,
-              border: "1px solid rgba(255,255,255,0.18)",
-              background: "rgba(255,255,255,0.06)",
-              color: "white",
-              width: "100%",
-              cursor: "pointer",
-              opacity: 0.92,
-              fontWeight: 800,
-            }}
-          >
-            Edit Income
-          </button>
-
-          <button
-            type="button"
-            onClick={() => goTo(3)}
-            style={{
-              marginTop: 10,
-              padding: 10,
-              borderRadius: 12,
-              border: "1px solid rgba(255,255,255,0.18)",
-              background: "rgba(255,255,255,0.06)",
-              color: "white",
-              width: "100%",
-              cursor: "pointer",
-              opacity: 0.92,
-              fontWeight: 800,
-            }}
-          >
-            Edit Fixed Bills
-          </button>
-
-<button
-  onClick={() => {
-    const subject = encodeURIComponent("ClearAhead Feedback");
-    const body = encodeURIComponent("Hi ClearAhead team,\n\nMy feedback:\n");
-    window.location.href = `mailto:ClearAhead2026@gmail.com?subject=${subject}&body=${body}`;
-  }}
-  style={{
-              marginTop: 16,
-              padding: 12,
-              borderRadius: 12,
-              border: "none",
-              cursor: "pointer",
-              background:
-                "linear-gradient(135deg, rgba(168,85,247,0.95), rgba(99,102,241,0.95))",
-              color: "white",
-              fontWeight: 900,
-              width: "100%",
-              boxShadow: "0 12px 30px rgba(99,102,241,0.35)",
-            }}
->
-  Send Feedback
-</button>
 
         </div>
       )}
@@ -4951,7 +5126,7 @@ const labelStyle = {
               : cardStyle
           }
         >
-          <h2 style={{ marginTop: 0 }}>Calendar</h2>
+          <h2 style={{ marginTop: 0 }}>Pro calendar</h2>
 
           {renderStepper(6)}
 
@@ -5568,8 +5743,35 @@ return (
   })()}
 </div>
 
-<div style={{ display: "flex", gap: 10, marginTop: 14 }}>
-            <button className="caBtn caBtnPrimary" onClick={() => goTo(5)}>
+<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 14, width: "100%" }}>
+            <button
+              className="caBtnPurple"
+              onClick={() => { setHomeView("overview"); goTo(1); }}
+              style={{
+                width: "100%",
+                padding: 12,
+                borderRadius: 12,
+                border: "1px solid rgba(168,85,247,0.45)",
+                color: "white",
+                cursor: "pointer",
+                fontWeight: 800,
+              }}
+            >
+              Back to Overview
+            </button>
+            <button
+              className="caBtnPurple"
+              onClick={() => goTo(5)}
+              style={{
+                width: "100%",
+                padding: 12,
+                borderRadius: 12,
+                border: "1px solid rgba(168,85,247,0.45)",
+                color: "white",
+                cursor: "pointer",
+                fontWeight: 800,
+              }}
+            >
               Back to Review
             </button>
           </div>
@@ -5618,7 +5820,7 @@ return (
               </button>
             </div>
 
-            <div style={{ marginTop: 10, opacity: 0.92, lineHeight: 1.45, fontSize: 14 }}>
+            <div style={{ marginTop: 10, opacity: 0.92, lineHeight: 1.45, fontSize: 14, textAlign: "left" }}>
               ClearAhead is a budgeting and planning tool. It does not provide financial advice.
               You are responsible for your decisions. Figures are estimates based on the data you enter.
               If you need regulated financial advice, speak to a qualified professional.
@@ -5691,9 +5893,9 @@ return (
               </button>
             </div>
 
-            <div style={{ marginTop: 12, lineHeight: 1.6, fontSize: 14, opacity: 0.92 }}>
+            <div style={{ marginTop: 12, lineHeight: 1.6, fontSize: 14, opacity: 0.92, textAlign: "left" }}>
               <p style={{ marginTop: 0 }}>
-                ClearAhead Pro adds deeper clarity on top of Basic with extra planning tools and insights.
+                ClearAhead Pro is a separate edition that adds deeper clarity on top of Basic — without changing how Basic works.
               </p>
 
               <div
@@ -5715,69 +5917,18 @@ return (
               </div>
 
               <div style={{ marginTop: 12 }}>
-                <div style={{ fontWeight: 900 }}>Unlock Pro</div>
+                <div style={{ fontWeight: 900 }}>How to get Pro</div>
                 {!isPro ? (
-                  <>
-                    <div style={{ opacity: 0.9, marginTop: 6 }}>
-                      Unlock ClearAhead Pro for £2.99.
-                    </div>
-
-                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
-                      <button
-                        onClick={handleProUnlock}
-                        style={{
-                          background: "#8b5cf6",
-                          color: "white",
-                          border: "none",
-                          padding: "10px 14px",
-                          borderRadius: 14,
-                          fontWeight: 900,
-                          cursor: "pointer",
-                        }}
-                      >
-                        Unlock Pro
-                      </button>
-
-                      <button
-                        onClick={handleRestorePurchase}
-                        style={{
-                          background: "rgba(255,255,255,0.10)",
-                          color: "rgba(241,245,249,0.96)",
-                          border: "1px solid rgba(255,255,255,0.18)",
-                          padding: "10px 14px",
-                          borderRadius: 14,
-                          fontWeight: 900,
-                          cursor: "pointer",
-                        }}
-                      >
-                        Restore Purchase
-                      </button>
-                    </div>
-
-                    {restoreMessage && (
-                      <div
-                        style={{
-                          marginTop: 12,
-                          padding: 12,
-                          borderRadius: 12,
-                          background: "rgba(255,255,255,0.06)",
-                          border: "1px solid rgba(255,255,255,0.12)",
-                          fontSize: 14,
-                          lineHeight: 1.5,
-                        }}
-                      >
-                        {restoreMessage}
-                      </div>
-                    )}
-                  </>
+                  <div style={{ opacity: 0.9 }}>
+                    To get Pro, download the <strong>ClearAhead Pro</strong> edition from the store.
+                  </div>
                 ) : (
-                  <div style={{ opacity: 0.9, marginTop: 6 }}>
-                    Pro is unlocked on this device.
+                  <div style={{ opacity: 0.9 }}>
+                    You’re using the <strong>ClearAhead Pro</strong> edition — Pro features are already unlocked.
                   </div>
                 )}
-
                 <div style={{ fontSize: 12, opacity: 0.75, marginTop: 6 }}>
-                  Restore is available if you reinstall or change device.
+                  Basic stays fully usable — Pro simply adds extra views and insights when you want them.
                 </div>
               </div>
             </div>
@@ -5841,6 +5992,8 @@ return (
     alignItems: "center",
     fontSize: 12,
     opacity: 0.78,
+    justifyContent: "flex-start",
+    textAlign: "left",
   }}
 >
   <span style={{ fontWeight: 800 }}>Version:</span>
@@ -5855,7 +6008,7 @@ return (
 <div style={{ fontSize: 10, opacity: 0.55, marginTop: 6 }}>
   © 2026 ClearAhead. All rights reserved.
 </div>
-            <div style={{ marginTop: 12, lineHeight: 1.6, fontSize: 14, opacity: 0.92 }}>
+            <div style={{ marginTop: 12, lineHeight: 1.6, fontSize: 14, opacity: 0.92, textAlign: "left" }}>
               <p style={{ marginTop: 0 }}>
                 ClearAhead is a calm financial clarity tool for people who want to feel in control of the next few weeks —
                 without spreadsheets, pressure, or judgement.
@@ -5889,6 +6042,17 @@ return (
           </div>
         </div>
       )}
+
+  {caShowUnlockOverlay && (
+    <CABasicUnlockOverlay
+      priceLabel={caUnlockPriceLabel}
+      loading={caUnlockLoading}
+      error={caUnlockError}
+      onBuy={caHandleBuyUnlock}
+      onRestore={caHandleRestoreUnlock}
+    />
+  )}
+
 </div>
   );
 
