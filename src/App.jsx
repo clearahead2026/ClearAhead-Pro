@@ -4,14 +4,15 @@ import "./App.css";
 
 
 // =========================
-// Basic One-Time Unlock (Android Google Play Billing via Digital Goods API)
+// Pro One-Time Unlock (Android Google Play Billing via Digital Goods API)
 // =========================
 const CA_PLAY_BILLING_STORE_ID = "https://play.google.com/billing";
 const CA_PLAY_STORE_APP_URL = "https://play.google.com/store/apps/details?id=app.clearahead.pro";
-const CA_BASIC_UNLOCK_PRODUCT_ID = "basic_unlock"; // MUST match Play Console product ID exactly
-const CA_BASIC_UNLOCK_SKU = CA_BASIC_UNLOCK_PRODUCT_ID;
-const CA_BASIC_UNLOCK_PURCHASE_OPTION_ID = CA_BASIC_UNLOCK_PRODUCT_ID;
-const CA_UNLOCK_STORAGE_KEY = "ca_basic_unlocked_v1";
+const CA_VERIFY_ENDPOINT = "/.netlify/functions/play-pro-verify";
+const CA_PRO_UNLOCK_PRODUCT_ID = "pro_unlock"; // MUST match Play Console product ID exactly
+const CA_PRO_UNLOCK_SKU = CA_PRO_UNLOCK_PRODUCT_ID;
+const CA_PRO_UNLOCK_PURCHASE_OPTION_ID = CA_PRO_UNLOCK_PRODUCT_ID;
+const CA_UNLOCK_STORAGE_KEY = "ca_pro_unlocked_v1";
 
 function caCanUsePlayBilling() {
   try {
@@ -30,8 +31,8 @@ function caCanUsePlayBilling() {
   }
 }
 
-function CABasicUnlockOverlay({
-  priceLabel = "£0.99",
+function CAProUnlockOverlay({
+  priceLabel = "£2.99",
   loading = false,
   error = "",
   onBuy,
@@ -62,9 +63,9 @@ function CABasicUnlockOverlay({
             padding: 22,
           }}
         >
-          <h1 style={{ margin: 0, fontSize: 22, letterSpacing: 0.2 }}>Unlock ClearAhead Basic</h1>
+          <h1 style={{ margin: 0, fontSize: 22, letterSpacing: 0.2 }}>Unlock ClearAhead Pro</h1>
           <p style={{ marginTop: 10, lineHeight: 1.5, opacity: 0.95 }}>
-            ClearAhead Basic is a <strong>one‑time purchase</strong>.<nobr />
+            ClearAhead Pro is a <strong>one‑time purchase</strong>.<nobr />
             No ads. No subscriptions. No in‑app traps.
           </p>
 
@@ -949,7 +950,7 @@ function IncomeItemDetails({
 export default function App() {
   const [step, setStep] = useState(1);
   const [showAbout, setShowAbout] = useState(false);
-  // ---------- Basic one‑time unlock (Android only; hook-safe overlay) ----------
+  // ---------- Pro one‑time unlock (Android only; hook-safe overlay) ----------
   const [caUnlocked, setCaUnlocked] = useState(() => {
     try {
       return typeof window !== "undefined" && localStorage.getItem(CA_UNLOCK_STORAGE_KEY) === "1";
@@ -960,43 +961,46 @@ export default function App() {
   const [caUnlockChecked, setCaUnlockChecked] = useState(false);
   const [caUnlockLoading, setCaUnlockLoading] = useState(false);
   const [caUnlockError, setCaUnlockError] = useState("");
-  const [caUnlockPriceLabel, setCaUnlockPriceLabel] = useState("£0.99");
+  const [caUnlockPriceLabel, setCaUnlockPriceLabel] = useState("£2.99");
 
   // Cache billing eligibility on first render to avoid rapid toggling during PaymentRequest UI.
   // (On some devices, display-mode/referrer signals can momentarily change and cause the overlay to flash.)
   const caBillingEligible = useMemo(() => caCanUsePlayBilling(), []);
 
-
   const caStoreUnlockLocally = () => {
     try { localStorage.setItem(CA_UNLOCK_STORAGE_KEY, "1"); } catch { /* ignore */ }
   };
 
+  const caClearLocalUnlock = () => {
+    try { localStorage.removeItem(CA_UNLOCK_STORAGE_KEY); } catch { /* ignore */ }
+  };
+
   const caGetPlayBillingService = async () => {
-  if (!caBillingEligible) throw new Error("billing_unavailable");
+    if (!caBillingEligible) throw new Error("billing_unavailable");
 
-  const getDgs =
-    (typeof navigator !== "undefined" && typeof navigator.getDigitalGoodsService === "function")
-      ? navigator.getDigitalGoodsService.bind(navigator)
-      : (typeof window !== "undefined" && typeof window.getDigitalGoodsService === "function")
-        ? window.getDigitalGoodsService.bind(window)
-        : null;
+    const getDgs =
+      (typeof navigator !== "undefined" && typeof navigator.getDigitalGoodsService === "function")
+        ? navigator.getDigitalGoodsService.bind(navigator)
+        : (typeof window !== "undefined" && typeof window.getDigitalGoodsService === "function")
+          ? window.getDigitalGoodsService.bind(window)
+          : null;
 
-  if (!getDgs) throw new Error("billing_unavailable");
+    if (!getDgs) throw new Error("billing_unavailable");
 
-  // Retry: on some installs, DGS temporarily returns "client app unavailable"
-  let lastErr;
-  for (let i = 0; i < 8; i++) {
-    try {
-      return await getDgs(CA_PLAY_BILLING_STORE_ID);
-    } catch (e) {
-      lastErr = e;
-      const msg = String(e?.message || e || "").toLowerCase();
-      if (!msg.includes("client app unavailable")) throw e;
-      await new Promise((r) => setTimeout(r, 600));
+    // Retry: on some installs, DGS temporarily returns "client app unavailable"
+    let lastErr;
+    for (let i = 0; i < 8; i++) {
+      try {
+        return await getDgs(CA_PLAY_BILLING_STORE_ID);
+      } catch (e) {
+        lastErr = e;
+        const msg = String(e?.message || e || "").toLowerCase();
+        if (!msg.includes("client app unavailable")) throw e;
+        await new Promise((r) => setTimeout(r, 600));
+      }
     }
-  }
-  throw lastErr || new Error("client app unavailable");
-};
+    throw lastErr || new Error("client app unavailable");
+  };
 
   const caFormatPrice = (item) => {
     try {
@@ -1010,32 +1014,78 @@ export default function App() {
     }
   };
 
-  const caCheckEntitlement = async (service) => {
-  try {
-    const purchases = await service.listPurchases();
-
-    const has = Array.isArray(purchases) && purchases.some((p) => {
-      const id =
-        p?.sku ||
-        p?.productId ||
-        p?.itemId ||
-        p?.product ||
-        p?.id ||
-        "";
-
-      return id === CA_BASIC_UNLOCK_PRODUCT_ID || id === CA_BASIC_UNLOCK_PURCHASE_OPTION_ID;
+  const caVerifyWithBackend = async (purchaseToken) => {
+    const res = await fetch(CA_VERIFY_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        purchaseToken,
+        productId: CA_PRO_UNLOCK_PRODUCT_ID,
+      }),
     });
 
-    if (has) {
-      setCaUnlocked(true);
-      caStoreUnlockLocally();
-      return true;
+    let data = null;
+    try {
+      data = await res.json();
+    } catch {
+      data = null;
     }
-  } catch {
-    // ignore
-  }
-  return false;
-};
+
+    if (!res.ok) {
+      throw new Error(data?.error || "verification_failed");
+    }
+
+    if (!data?.ok || !data?.entitled) {
+      throw new Error(data?.error || data?.message || "not_entitled");
+    }
+
+    return data;
+  };
+
+  const caCheckEntitlement = async (service) => {
+    try {
+      const purchases = (await service.listPurchases?.()) || [];
+      const hit = purchases.find((p) => {
+        const id =
+          p?.sku ||
+          p?.productId ||
+          p?.itemId ||
+          p?.product ||
+          p?.id ||
+          "";
+
+        return id === CA_PRO_UNLOCK_PRODUCT_ID || id === CA_PRO_UNLOCK_PURCHASE_OPTION_ID;
+      });
+
+      if (!hit) {
+        setCaUnlocked(false);
+        caClearLocalUnlock();
+        return false;
+      }
+
+      const token =
+        hit?.purchaseToken ||
+        hit?.token ||
+        hit?.purchase_token ||
+        hit?.paymentMethodData?.token ||
+        hit?.paymentMethodData?.purchaseToken;
+
+      if (!token) return false;
+
+      const verified = await caVerifyWithBackend(token);
+      if (verified?.entitled) {
+        setCaUnlocked(true);
+        caStoreUnlockLocally();
+        return true;
+      }
+    } catch {
+      // ignore here; buy / restore flows surface concrete errors
+    }
+
+    setCaUnlocked(false);
+    caClearLocalUnlock();
+    return false;
+  };
   // Show the About screen automatically on the very first launch (after install).
   // After the user closes it once, we remember that choice in localStorage.
   const closeAbout = () => {
@@ -1064,48 +1114,28 @@ export default function App() {
   const [showMainMenu, setShowMainMenu] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [isPro, setIsPro] = useState(false);
-  
 
-// Pro entitlement is decided at build-time (two-app model):
-  // - ClearAhead Basic: VITE_CLEARAHEAD_EDITION="basic" (or unset)
-  // - ClearAhead Pro:   VITE_CLEARAHEAD_EDITION="pro"
-  // No in-app purchases, no restore, no store/billing bridges.
-  const CA_EDITION = (import.meta.env.VITE_CLEARAHEAD_EDITION || import.meta.env.VITE_CLEARAHEAD_PRO || "pro");
-  const IS_PRO_BUILD = String(CA_EDITION).toLowerCase() === "pro" || String(CA_EDITION).toLowerCase() === "true" || String(CA_EDITION) === "1";
+  // Pro app uses its own one-time unlock product and secure backend verification.
   useEffect(() => {
-    // Only Basic uses the unlock. Pro stays separate.
-    if (IS_PRO_BUILD) { setCaUnlocked(true); setCaUnlockChecked(true); return; }
-
-    // Never run billing checks on platforms without Play Billing bridge (Windows/web).
-    if (!caBillingEligible) { setCaUnlockChecked(true); return; }
-
     let cancelled = false;
 
     const init = async () => {
       setCaUnlockError("");
       setCaUnlockChecked(false);
 
-      // Fast path: local cache
-      try {
-        if (localStorage.getItem(CA_UNLOCK_STORAGE_KEY) === "1") {
-          setCaUnlocked(true);
-          setCaUnlockChecked(true);
-          return;
-        }
-      } catch {
-        // ignore
+      if (!caBillingEligible) {
+        setCaUnlockChecked(true);
+        return;
       }
 
       setCaUnlockLoading(true);
       try {
-  // wait briefly after app launch so Play Billing service is ready
-  await new Promise(r => setTimeout(r, 600));
+        await new Promise((r) => setTimeout(r, 600));
 
-  const service = await caGetPlayBillingService();
+        const service = await caGetPlayBillingService();
 
-        // Price label (best effort)
         try {
-          const details = await service.getDetails([CA_BASIC_UNLOCK_SKU]);
+          const details = await service.getDetails([CA_PRO_UNLOCK_SKU]);
           if (Array.isArray(details) && details[0]) {
             const formatted = caFormatPrice(details[0]);
             if (formatted && !cancelled) setCaUnlockPriceLabel(formatted);
@@ -1116,7 +1146,9 @@ export default function App() {
 
         await caCheckEntitlement(service);
       } catch (e) {
-        if (!cancelled) setCaUnlockError("Purchases are only available in the installed Android app.");
+        if (!cancelled) {
+          setCaUnlockError("Purchases are only available in the installed Android app.");
+        }
       } finally {
         if (!cancelled) {
           setCaUnlockLoading(false);
@@ -1128,139 +1160,127 @@ export default function App() {
     init();
 
     return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [IS_PRO_BUILD]);
+  }, [caBillingEligible]);
 
   // Show unlock overlay only after we've checked purchase state (prevents 1-frame flash / undefined var)
-  const caShowUnlockOverlay = (!IS_PRO_BUILD) && (!caUnlocked) && caUnlockChecked && caBillingEligible;
+  const caShowUnlockOverlay = (!caUnlocked) && caUnlockChecked && caBillingEligible;
   const caHandleBuyUnlock = async () => {
-  setCaUnlockError("");
-  setCaUnlockLoading(true);
+    setCaUnlockError("");
+    setCaUnlockLoading(true);
 
-  try {
-    if (typeof window === "undefined" || typeof window.PaymentRequest !== "function") {
-      throw new Error("payment_request_unavailable");
-    }
-
-    const service = await caGetPlayBillingService();
-
-    const methodData = [{
-      supportedMethods: CA_PLAY_BILLING_STORE_ID, // should be "https://play.google.com/billing"
-      data: { sku: CA_BASIC_UNLOCK_PRODUCT_ID },
-    }];
-
-    // Use a neutral total; Play shows the real price from Console.
-    const details = {
-      total: {
-        label: "ClearAhead Basic Unlock",
-        amount: { currency: "GBP", value: "0.00" },
-      },
-    };
-
-    const request = new window.PaymentRequest(methodData, details);
-
-    // Optional but helps some devices fail early instead of “cancelled”
-    if (typeof request.canMakePayment === "function") {
-      const canPay = await request.canMakePayment();
-      if (!canPay) throw new Error("cannot_make_payment");
-    }
-
-    const response = await request.show();
-
-    // ---- IMPORTANT: acknowledge purchase token (non-consumable) ----
-    // Token location can vary; try the known spots safely.
-    const token =
-      response?.details?.purchaseToken ||
-      response?.details?.token ||
-      response?.details?.purchase_token ||
-      response?.details?.paymentMethodData?.token ||
-      response?.details?.paymentMethodData?.purchaseToken;
-
-    if (token) {
-      try {
-        // Digital Goods API supports acknowledge in TWA context
-        if (typeof service.acknowledge === "function") {
-          await service.acknowledge(token);
-        }
-      } catch (_) {
-        // ignore ack errors; entitlement check below is the source of truth
+    try {
+      if (typeof window === "undefined" || typeof window.PaymentRequest !== "function") {
+        throw new Error("payment_request_unavailable");
       }
+
+      const service = await caGetPlayBillingService();
+
+      const methodData = [{
+        supportedMethods: CA_PLAY_BILLING_STORE_ID,
+        data: { sku: CA_PRO_UNLOCK_PRODUCT_ID },
+      }];
+
+      const details = {
+        total: {
+          label: "ClearAhead Pro Unlock",
+          amount: { currency: "GBP", value: "0.00" },
+        },
+      };
+
+      const request = new window.PaymentRequest(methodData, details);
+
+      if (typeof request.canMakePayment === "function") {
+        const canPay = await request.canMakePayment();
+        if (!canPay) throw new Error("cannot_make_payment");
+      }
+
+      const response = await request.show();
+
+      const token =
+        response?.details?.purchaseToken ||
+        response?.details?.token ||
+        response?.details?.purchase_token ||
+        response?.details?.paymentMethodData?.token ||
+        response?.details?.paymentMethodData?.purchaseToken;
+
+      if (!token) {
+        throw new Error("missing_purchase_token");
+      }
+
+      await caVerifyWithBackend(token);
+
+      try { await response.complete("success"); } catch { /* ignore */ }
+
+      setCaUnlocked(true);
+      caStoreUnlockLocally();
+      setCaUnlockError("");
+    } catch (e) {
+      const msg = String(e?.message || e || "").toLowerCase();
+
+      if (msg.includes("already") || msg.includes("owned")) {
+        try {
+          const service2 = await caGetPlayBillingService();
+          await new Promise((r) => setTimeout(r, 400));
+          const ok = await caCheckEntitlement(service2);
+          if (ok) {
+            setCaUnlocked(true);
+            caStoreUnlockLocally();
+            setCaUnlockError("");
+            return;
+          }
+        } catch (_) {}
+      }
+
+      setCaUnlockError("Billing error: " + String(e?.message || e || "unknown"));
+    } finally {
+      setCaUnlockLoading(false);
     }
-
-    try { await response.complete("success"); } catch { /* ignore */ }
-
-    // Wait for entitlement to appear
-    let ok = false;
-    for (let i = 0; i < 8; i++) {
-      await new Promise((r) => setTimeout(r, 600));
-      ok = await caCheckEntitlement(service);
-      if (ok) break;
-    }
-    if (!ok) throw new Error("no_entitlement");
-
-    setCaUnlocked(true);
-    caStoreUnlockLocally();
-
-  } catch (e) {
-    const msg = String(e?.message || e || "").toLowerCase();
-
-    if (msg.includes("already") || msg.includes("owned")) {
-      try {
-        const service2 = await caGetPlayBillingService();
-        await new Promise((r) => setTimeout(r, 400));
-        const ok = await caCheckEntitlement(service2);
-        if (ok) {
-          setCaUnlocked(true);
-          caStoreUnlockLocally();
-          setCaUnlockError("");
-          return;
-        }
-      } catch (_) {}
-    }
-
-    setCaUnlockError("Billing error: " + String(e?.message || e || "unknown"));
-  } finally {
-    setCaUnlockLoading(false);
-  }
-};
+  };
 
   const caHandleRestoreUnlock = async () => {
-  setCaUnlockError("");
-  setCaUnlockLoading(true);
-
-  try {
-    const service = await caGetPlayBillingService();
-
-    // Pull purchases directly and match by product id safely
-    const purchases = (await service.listPurchases?.()) || [];
-    const hit = purchases.find((p) => {
-      const id = p?.sku || p?.productId || p?.itemId || p?.product || "";
-      return id === CA_BASIC_UNLOCK_PRODUCT_ID || id === CA_BASIC_UNLOCK_PURCHASE_OPTION_ID;
-    });
-
-    if (!hit) {
-      setCaUnlockError("No purchase found on this Google account yet.");
-      return;
-    }
-
-    // If we have a token and acknowledge exists, acknowledge silently (safe)
-    const token = hit?.purchaseToken || hit?.token;
-    if (token && typeof service.acknowledge === "function") {
-      try { await service.acknowledge(token); } catch (_) {}
-    }
-
-    setCaUnlocked(true);
-    caStoreUnlockLocally();
     setCaUnlockError("");
-  } catch (e) {
-  setCaUnlockError("Restore error: " + String(e?.message || e || "unknown"));
-} finally {
-    setCaUnlockLoading(false);
-  }
-};
+    setCaUnlockLoading(true);
+
+    try {
+      const service = await caGetPlayBillingService();
+
+      const purchases = (await service.listPurchases?.()) || [];
+      const hit = purchases.find((p) => {
+        const id = p?.sku || p?.productId || p?.itemId || p?.product || p?.id || "";
+        return id === CA_PRO_UNLOCK_PRODUCT_ID || id === CA_PRO_UNLOCK_PURCHASE_OPTION_ID;
+      });
+
+      if (!hit) {
+        setCaUnlockError("No purchase found on this Google account yet.");
+        return;
+      }
+
+      const token =
+        hit?.purchaseToken ||
+        hit?.token ||
+        hit?.purchase_token ||
+        hit?.paymentMethodData?.token ||
+        hit?.paymentMethodData?.purchaseToken;
+
+      if (!token) {
+        setCaUnlockError("No purchase token found for this Google account.");
+        return;
+      }
+
+      await caVerifyWithBackend(token);
+
+      setCaUnlocked(true);
+      caStoreUnlockLocally();
+      setCaUnlockError("");
+    } catch (e) {
+      setCaUnlockError("Restore error: " + String(e?.message || e || "unknown"));
+    } finally {
+      setCaUnlockLoading(false);
+    }
+  };
   useEffect(() => {
-    setIsPro(IS_PRO_BUILD);
-  }, [IS_PRO_BUILD]);
+    setIsPro(true);
+  }, []);
   // Pro lookahead (Pro can choose 5–12 weeks; Basic is locked to 5 weeks)
   const [proLookaheadWeeks, setProLookaheadWeeks] = useState(5);
 
@@ -6044,7 +6064,7 @@ return (
       )}
 
   {caShowUnlockOverlay && (
-    <CABasicUnlockOverlay
+    <CAProUnlockOverlay
       priceLabel={caUnlockPriceLabel}
       loading={caUnlockLoading}
       error={caUnlockError}
