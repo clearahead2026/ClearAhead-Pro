@@ -1163,7 +1163,7 @@ export default function App() {
   }, [caBillingEligible]);
 
   // Show unlock overlay only after we've checked purchase state (prevents 1-frame flash / undefined var)
-  const caShowUnlockOverlay = (!caUnlocked) && caUnlockChecked && caBillingEligible;
+  const caShowUnlockOverlay = false;
   const caHandleBuyUnlock = async () => {
     setCaUnlockError("");
     setCaUnlockLoading(true);
