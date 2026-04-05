@@ -3231,10 +3231,7 @@ const labelStyle = {
   const wageJobs = incomes.filter((x) => x.type === "wage_job");
   const hasJobs = wageJobs.length > 0;
 
-  const checkboxChecked = hasJobs ? true : wageAddOpen;
-
   const addJob = () => {
-    // Validate minimal requirements (match other income rules)
     if (moneyNumberOrNull(wageDraft.amount) === null) return;
     if (!wageDraft.frequency) return;
     if (!isValidISODate(wageDraft.nextDate)) return;
@@ -3254,7 +3251,6 @@ const labelStyle = {
       },
     ]);
 
-    // Clear + close (calm UX like other add flows)
     setWageDraft({
       label: "Wage / Salary",
       amount: "",
@@ -3271,22 +3267,9 @@ const labelStyle = {
 
   return (
     <div style={{ marginBottom: 14 }}>
-      <label style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <input
-          type="checkbox"
-          checked={checkboxChecked}
-          disabled={hasJobs}
-          onChange={(e) => {
-            // This checkbox is only used to START the first job entry.
-            // Once jobs exist, we keep it checked (calm + predictable) and use Remove per job.
-            const next = e.target.checked;
-            if (!hasJobs) setWageAddOpen(next);
-          }}
-        />
-        <div style={{ fontWeight: 900 }}>Wage / Salary</div>
-      </label>
+      <div style={{ fontWeight: 900 }}>Wage / Salary</div>
 
-      {/* Saved jobs (closed view) */}
+      {/* Saved jobs */}
       {hasJobs && (
         <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
           {wageJobs.map((job) => {
@@ -3419,8 +3402,8 @@ const labelStyle = {
         </div>
       )}
 
-      {/* Add job form (opens, then closes after Add) */}
-      {wageAddOpen && (
+      {/* Add job form: show immediately if there are no saved jobs */}
+      {(wageAddOpen || !hasJobs) && (
         <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
           <div>
             <div style={labelStyle}>Job label</div>
@@ -3475,29 +3458,24 @@ const labelStyle = {
               Add
             </button>
 
-            <button
-              type="button"
-              onClick={() => {
-                setWageAddOpen(false);
-                setWageDraft({
-                  label: "Wage / Salary",
-                  amount: "",
-                  frequency: "monthly",
-                  nextDate: todayISO(),
-                });
-              }}
-              className="caBtn caBtnGhost"
-            >
-              Done
-            </button>
+            {hasJobs && (
+              <button
+                type="button"
+                onClick={() => {
+                  setWageAddOpen(false);
+                  setWageDraft({
+                    label: "Wage / Salary",
+                    amount: "",
+                    frequency: "monthly",
+                    nextDate: todayISO(),
+                  });
+                }}
+                className="caBtn caBtnGhost"
+              >
+                Done
+              </button>
+            )}
           </div>
-        </div>
-      )}
-
-      {/* If no jobs and add form is closed, show a calm helper line */}
-      {!hasJobs && !wageAddOpen && (
-        <div style={{ marginTop: 8, fontSize: 12, opacity: 0.75 }}>
-          Tick Wage / Salary to add your first job.
         </div>
       )}
     </div>
