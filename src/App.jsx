@@ -2676,11 +2676,13 @@ const labelStyle = {
         .caModalOverlay { overflow-y: auto !important; -webkit-overflow-scrolling: touch; align-items: flex-start !important; }
         .caModalCard { max-height: calc(100vh - 32px) !important; overflow-y: auto !important; }
         .appShell button.caBtnPurple {
-          border: 1px solid rgba(168,85,247,0.45) !important;
-          background: linear-gradient(135deg, rgba(168,85,247,0.98), rgba(124,58,237,0.98)) !important;
-          color: white !important;
-          box-shadow: 0 12px 28px rgba(124,58,237,0.30) !important;
-        }
+  border: 1px solid rgba(196,181,253,0.32) !important;
+  background: linear-gradient(135deg, rgba(107,70,193,0.96), rgba(91,44,155,0.96)) !important;
+  color: rgba(255,255,255,0.98) !important;
+  box-shadow: 0 8px 18px rgba(91,44,155,0.18) !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
         .appShell button.caBtnTeal {
           border: 1px solid rgba(94,234,212,0.42) !important;
           background: linear-gradient(135deg, rgba(45,212,191,0.96), rgba(13,148,136,0.96)) !important;
