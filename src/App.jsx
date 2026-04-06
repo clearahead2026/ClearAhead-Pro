@@ -1378,16 +1378,30 @@ async function handleShare() {
   }
 
   function clearAllData() {
-    setShowResetConfirm(true);
-    return;
+  setShowMainMenu(false);
+  setShowResetConfirm(true);
+}
 
-    try {
-      localStorage.clear();
-    } catch (e) {
-      // ignore
-    }
+function confirmClearAllData() {
+  try {
+    localStorage.clear();
+  } catch (e) {
+    // ignore
+  }
+
+  setShowResetConfirm(false);
+  setShowMainMenu(false);
+  setHomeView("setup");
+  setStep(1);
+
+  try {
+    window.location.replace("#step-1");
+  } catch {
     window.location.reload();
   }
+
+  window.location.reload();
+}
 
   function goTo(nextStep) {
   setNavFrom(nextStep > step ? "forward" : "back");
