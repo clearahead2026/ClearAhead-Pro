@@ -745,7 +745,11 @@ function IncomeItemDetails({
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
         {hasDetails && (
           <div style={{ flex: "1 1 220px", minWidth: 160 }}>
-            <div style={{ fontWeight: 900 }}>{formatMoney2dp(income.amount)}</div>
+            <div style={{ fontWeight: 900 }}>
+  {moneyNumberOrNull(income.amount) !== null
+    ? formatMoney(Number(income.amount))
+    : "-"}
+</div>
             <div style={{ opacity: 0.75, fontSize: 12 }}>
               {prettyFrequency(income.frequency)} • {displayUKDate(income.nextDate)}
             </div>
