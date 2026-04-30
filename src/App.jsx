@@ -5152,55 +5152,122 @@ const labelStyle = {
             </button>
 
             </div>
-{isPro && (
-  <div
-    style={{
-      marginTop: 12,
-      marginBottom: 10,
-      padding: 12,
-      borderRadius: 14,
-      border: "1px solid rgba(255,255,255,0.14)",
-      background: "rgba(255,255,255,0.06)",
-    }}
-  >
-    <div style={{ fontWeight: 900, marginBottom: 6 }}>Pro insights</div>
-    <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 8 }}>Pro insights gives you a in depth view of all events over your full window.</div>
+     {isPro && (
+  <div style={{ display: "grid", gap: 12, marginTop: 12, marginBottom: 10 }}>
+    <div
+      style={{
+        padding: 12,
+        borderRadius: 14,
+        border: "1px solid rgba(255,255,255,0.14)",
+        background: "rgba(255,255,255,0.06)",
+      }}
+    >
+      <div style={{ fontWeight: 900, marginBottom: 6 }}>Pro insights</div>
+      <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 8 }}>
+        Pro insights gives you a deeper view of all events across your full window.
+      </div>
 
-    <div style={{ display: "grid", gap: 6, fontSize: 12,
-    minHeight: 42, opacity: 0.92 }}>
-      <div>
-        <span style={{ opacity: 0.8 }}>Total income:</span>{" "}
-        <span style={{ fontWeight: 900 }}>{formatMoney((proInsights.incomeTotal || 0).toFixed(2))}</span>
-      </div>
-      <div>
-        <span style={{ opacity: 0.8 }}>Total outgoings:</span>{" "}
-        <span style={{ fontWeight: 900 }}>{formatMoney((proInsights.outgoingTotal || 0).toFixed(2))}</span>
-      </div>
-      <div>
-        <span style={{ opacity: 0.8 }}>Net:</span>{" "}
-        <span style={{ fontWeight: 900 }}>
-          {formatMoney((proInsights.net || 0).toFixed(2))}
-        </span>
-      </div>
-      {Number.isFinite(proInsights.lowest) && (
-        <div>
-          <span style={{ opacity: 0.8 }}>Lowest balance:</span>{" "}
-          <span style={{ fontWeight: 900 }}>{formatMoney(proInsights.lowest.toFixed(2))}</span>
+      <div style={{ display: "grid", gap: 8 }}>
+        <div
+          style={{
+            padding: "10px 12px",
+            borderRadius: 12,
+            border: "1px solid rgba(255,255,255,0.10)",
+            background: "rgba(0,0,0,0.16)",
+          }}
+        >
+          <div style={{ fontSize: 12, opacity: 0.75 }}>Total income</div>
+          <div style={{ fontWeight: 900, marginTop: 4 }}>
+            {formatMoney((proInsights.incomeTotal || 0).toFixed(2))}
+          </div>
         </div>
-      )}
-      {Number.isFinite(proInsights.highest) && (
-        <div>
-          <span style={{ opacity: 0.8 }}>Highest balance:</span>{" "}
-          <span style={{ fontWeight: 900 }}>{formatMoney(proInsights.highest.toFixed(2))}</span>
+
+        <div
+          style={{
+            padding: "10px 12px",
+            borderRadius: 12,
+            border: "1px solid rgba(255,255,255,0.10)",
+            background: "rgba(0,0,0,0.16)",
+          }}
+        >
+          <div style={{ fontSize: 12, opacity: 0.75 }}>Total outgoings</div>
+          <div style={{ fontWeight: 900, marginTop: 4 }}>
+            {formatMoney((proInsights.outgoingTotal || 0).toFixed(2))}
+          </div>
         </div>
-      )}
+
+        <div
+          style={{
+            padding: "10px 12px",
+            borderRadius: 12,
+            border: "1px solid rgba(255,255,255,0.10)",
+            background: "rgba(0,0,0,0.16)",
+          }}
+        >
+          <div style={{ fontSize: 12, opacity: 0.75 }}>Net</div>
+          <div style={{ fontWeight: 900, marginTop: 4 }}>
+            {formatMoney((proInsights.net || 0).toFixed(2))}
+          </div>
+        </div>
+      </div>
     </div>
 
-    
+    <div
+      style={{
+        padding: 12,
+        borderRadius: 14,
+        border: "1px solid rgba(255,255,255,0.14)",
+        background: "rgba(255,255,255,0.06)",
+      }}
+    >
+      <div style={{ fontWeight: 900, marginBottom: 8 }}>Balance range</div>
+
+      <div style={{ display: "grid", gap: 8 }}>
+        {Number.isFinite(proInsights.lowest) && (
+          <div
+            style={{
+              padding: "10px 12px",
+              borderRadius: 12,
+              border: "1px solid rgba(255,255,255,0.10)",
+              background: "rgba(0,0,0,0.16)",
+            }}
+          >
+            <div style={{ fontSize: 12, opacity: 0.75 }}>Lowest balance</div>
+            <div style={{ fontWeight: 900, marginTop: 4 }}>
+              {formatMoney(proInsights.lowest.toFixed(2))}
+            </div>
+          </div>
+        )}
+
+        {Number.isFinite(proInsights.highest) && (
+          <div
+            style={{
+              padding: "10px 12px",
+              borderRadius: 12,
+              border: "1px solid rgba(255,255,255,0.10)",
+              background: "rgba(0,0,0,0.16)",
+            }}
+          >
+            <div style={{ fontSize: 12, opacity: 0.75 }}>Highest balance</div>
+            <div style={{ fontWeight: 900, marginTop: 4 }}>
+              {formatMoney(proInsights.highest.toFixed(2))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+
     {proInsights.topIn?.length > 0 && (
-      <div style={{ marginTop: 10 }}>
-        <div style={{ fontWeight: 900, fontSize: 12, opacity: 0.85, marginBottom: 6 }}>
-          Biggest incoming (by amount)
+      <div
+        style={{
+          padding: 12,
+          borderRadius: 14,
+          border: "1px solid rgba(255,255,255,0.14)",
+          background: "rgba(255,255,255,0.06)",
+        }}
+      >
+        <div style={{ fontWeight: 900, fontSize: 12, opacity: 0.9, marginBottom: 8 }}>
+          Biggest incoming
         </div>
         <div style={{ display: "grid", gap: 6 }}>
           {proInsights.topIn.map((x) => (
@@ -5208,7 +5275,7 @@ const labelStyle = {
               key={x.label}
               style={{
                 display: "flex",
-                justifyContent: "flex-start",
+                justifyContent: "space-between",
                 gap: 10,
                 padding: "8px 10px",
                 borderRadius: 12,
@@ -5216,8 +5283,7 @@ const labelStyle = {
                 background: "rgba(0,0,0,0.16)",
               }}
             >
-              <div style={{ fontSize: 12,
-    minHeight: 42, opacity: 0.95 }}>{x.label}</div>
+              <div style={{ fontSize: 12, opacity: 0.95 }}>{x.label}</div>
               <div style={{ fontWeight: 900 }}>{formatMoney((x.amt || 0).toFixed(2))}</div>
             </div>
           ))}
@@ -5225,10 +5291,17 @@ const labelStyle = {
       </div>
     )}
 
-{proInsights.topOut?.length > 0 && (
-      <div style={{ marginTop: 10 }}>
-        <div style={{ fontWeight: 900, fontSize: 12, opacity: 0.85, marginBottom: 6 }}>
-          Biggest outgoings (by amount)
+    {proInsights.topOut?.length > 0 && (
+      <div
+        style={{
+          padding: 12,
+          borderRadius: 14,
+          border: "1px solid rgba(255,255,255,0.14)",
+          background: "rgba(255,255,255,0.06)",
+        }}
+      >
+        <div style={{ fontWeight: 900, fontSize: 12, opacity: 0.9, marginBottom: 8 }}>
+          Biggest outgoings
         </div>
         <div style={{ display: "grid", gap: 6 }}>
           {proInsights.topOut.map((x) => (
@@ -5236,7 +5309,7 @@ const labelStyle = {
               key={x.label}
               style={{
                 display: "flex",
-                justifyContent: "flex-start",
+                justifyContent: "space-between",
                 gap: 10,
                 padding: "8px 10px",
                 borderRadius: 12,
@@ -5244,8 +5317,7 @@ const labelStyle = {
                 background: "rgba(0,0,0,0.16)",
               }}
             >
-              <div style={{ fontSize: 12,
-    minHeight: 42, opacity: 0.95 }}>{x.label}</div>
+              <div style={{ fontSize: 12, opacity: 0.95 }}>{x.label}</div>
               <div style={{ fontWeight: 900 }}>{formatMoney((x.amt || 0).toFixed(2))}</div>
             </div>
           ))}
