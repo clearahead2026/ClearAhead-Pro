@@ -4,15 +4,15 @@ import "./App.css";
 
 
 // =========================
-// Pro One-Time Unlock (Android Google Play Billing via Digital Goods API)
+// Basic One-Time Unlock (Android Google Play Billing via Digital Goods API)
 // =========================
 const CA_PLAY_BILLING_STORE_ID = "https://play.google.com/billing";
-const CA_PLAY_STORE_APP_URL = "https://play.google.com/store/apps/details?id=app.clearahead.pro";
-const CA_VERIFY_ENDPOINT = "/.netlify/functions/play-pro-verify";
-const CA_PRO_UNLOCK_PRODUCT_ID = "pro_unlock"; // MUST match Play Console product ID exactly
-const CA_PRO_UNLOCK_SKU = CA_PRO_UNLOCK_PRODUCT_ID;
-const CA_PRO_UNLOCK_PURCHASE_OPTION_ID = CA_PRO_UNLOCK_PRODUCT_ID;
-const CA_UNLOCK_STORAGE_KEY = "ca_pro_unlocked_v1";
+const CA_PLAY_STORE_APP_URL = "https://play.google.com/store/apps/details?id=app.clearahead.basic";
+const CA_BASIC_UNLOCK_PRODUCT_ID = "basic_unlock"; // MUST match Play Console product ID exactly
+const CA_BASIC_UNLOCK_SKU = CA_BASIC_UNLOCK_PRODUCT_ID;
+const CA_BASIC_UNLOCK_PURCHASE_OPTION_ID = CA_BASIC_UNLOCK_PRODUCT_ID;
+const CA_UNLOCK_STORAGE_KEY = "ca_basic_unlocked_v1";
+const CA_VERIFY_ENDPOINT = "/.netlify/functions/play-basic-verify";
 
 function caCanUsePlayBilling() {
   try {
@@ -31,8 +31,8 @@ function caCanUsePlayBilling() {
   }
 }
 
-function CAProUnlockOverlay({
-  priceLabel = "£2.99",
+function CABasicUnlockOverlay({
+  priceLabel = "£0.99",
   loading = false,
   error = "",
   onBuy,
@@ -63,9 +63,9 @@ function CAProUnlockOverlay({
             padding: 22,
           }}
         >
-          <h1 style={{ margin: 0, fontSize: 22, letterSpacing: 0.2 }}>Unlock ClearAhead Pro</h1>
+          <h1 style={{ margin: 0, fontSize: 22, letterSpacing: 0.2 }}>Unlock ClearAhead Basic</h1>
           <p style={{ marginTop: 10, lineHeight: 1.5, opacity: 0.95 }}>
-            ClearAhead Pro is a <strong>one‑time purchase</strong>.<nobr />
+            ClearAhead Basic is a <strong>one‑time purchase</strong>.<nobr />
             No ads. No subscriptions. No in‑app traps.
           </p>
 
@@ -128,6 +128,114 @@ function CAProUnlockOverlay({
           <div style={{ marginTop: 12, fontSize: 12, opacity: 0.78, lineHeight: 1.4 }}>
             If you already paid on this Google account, tap <strong>Restore purchase</strong>.
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+function CABasicStoreLockPage() {
+  const pageWrap = {
+    minHeight: "100vh",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+    background:
+      "radial-gradient(circle at top, rgba(124,58,237,0.22) 0%, rgba(11,18,32,1) 48%, rgba(2,6,23,1) 100%)",
+    color: "rgba(241,245,249,0.95)",
+    textAlign: "center",
+  };
+
+  const card = {
+    width: "100%",
+    maxWidth: 640,
+    borderRadius: 24,
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.04) 100%)",
+    boxShadow: "0 30px 80px rgba(0,0,0,0.45)",
+    padding: 28,
+    backdropFilter: "blur(14px)",
+    WebkitBackdropFilter: "blur(14px)",
+  };
+
+  const buttonBase = {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+    minHeight: 48,
+    padding: "12px 16px",
+    borderRadius: 14,
+    fontWeight: 900,
+    textDecoration: "none",
+    cursor: "pointer",
+    boxSizing: "border-box",
+  };
+
+  return (
+    <div style={pageWrap}>
+      <div style={card}>
+        <div
+          style={{
+            fontSize: 52,
+            fontWeight: 900,
+            lineHeight: 1,
+            color: "#a855f7",
+            textShadow:
+              "0 0 6px rgba(255,255,255,0.55), 0 0 14px rgba(255,255,255,0.35), 0 0 26px rgba(255,255,255,0.18)",
+          }}
+        >
+          ClearAhead
+        </div>
+
+        <div style={{ marginTop: 4, fontSize: 22, fontWeight: 900 }}>Basic</div>
+
+        <p style={{ marginTop: 18, marginBottom: 0, fontSize: 16, lineHeight: 1.6, opacity: 0.92 }}>
+          The browser version is locked.
+          <br />
+          ClearAhead Basic is available through the official app stores.
+        </p>
+
+        <div
+          style={{
+            marginTop: 20,
+            padding: 16,
+            borderRadius: 18,
+            background: "rgba(0,0,0,0.22)",
+            border: "1px solid rgba(255,255,255,0.10)",
+            textAlign: "left",
+          }}
+        >
+          <div style={{ fontWeight: 900, marginBottom: 8 }}>What you get</div>
+          <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.6, opacity: 0.92 }}>
+            <li>One-time purchase</li>
+            <li>No ads</li>
+            <li>No subscriptions</li>
+            <li>Calm financial clarity on your device</li>
+          </ul>
+        </div>
+
+        <div style={{ display: "grid", gap: 12, marginTop: 20 }}>
+          <a
+            href={CA_PLAY_STORE_APP_URL}
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              ...buttonBase,
+              border: "1px solid rgba(168,85,247,0.45)",
+              background: "linear-gradient(135deg, rgba(168,85,247,0.98), rgba(124,58,237,0.98))",
+              color: "white",
+              boxShadow: "0 12px 28px rgba(124,58,237,0.28)",
+            }}
+          >
+            Download on Google Play
+          </a>
+        </div>
+
+        <div style={{ marginTop: 14, fontSize: 12, opacity: 0.72 }}>
+          Installed app users should open ClearAhead through the store-installed app, not this browser page.
         </div>
       </div>
     </div>
@@ -745,11 +853,7 @@ function IncomeItemDetails({
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
         {hasDetails && (
           <div style={{ flex: "1 1 220px", minWidth: 160 }}>
-            <div style={{ fontWeight: 900 }}>
-  {moneyNumberOrNull(income.amount) !== null
-    ? formatMoney(Number(income.amount))
-    : "-"}
-</div>
+            <div style={{ fontWeight: 900 }}>{formatMoney2dp(income.amount)}</div>
             <div style={{ opacity: 0.75, fontSize: 12 }}>
               {prettyFrequency(income.frequency)} • {displayUKDate(income.nextDate)}
             </div>
@@ -954,7 +1058,7 @@ function IncomeItemDetails({
 export default function App() {
   const [step, setStep] = useState(1);
   const [showAbout, setShowAbout] = useState(false);
-  // ---------- Pro one‑time unlock (Android only; hook-safe overlay) ----------
+  // ---------- Basic one‑time unlock (Android only; hook-safe overlay) ----------
   const [caUnlocked, setCaUnlocked] = useState(() => {
     try {
       return typeof window !== "undefined" && localStorage.getItem(CA_UNLOCK_STORAGE_KEY) === "1";
@@ -965,20 +1069,12 @@ export default function App() {
   const [caUnlockChecked, setCaUnlockChecked] = useState(false);
   const [caUnlockLoading, setCaUnlockLoading] = useState(false);
   const [caUnlockError, setCaUnlockError] = useState("");
-  const [caUnlockPriceLabel, setCaUnlockPriceLabel] = useState("£2.99");
+  const [caUnlockPriceLabel, setCaUnlockPriceLabel] = useState("£0.99");
 
   // Cache billing eligibility on first render to avoid rapid toggling during PaymentRequest UI.
   // (On some devices, display-mode/referrer signals can momentarily change and cause the overlay to flash.)
   const caBillingEligible = useMemo(() => caCanUsePlayBilling(), []);
-  useEffect(() => {
-  if (typeof window === "undefined") return;
-  if (caBillingEligible) return;
 
-  const isRootPath = window.location.pathname === "/" || window.location.pathname === "/index.html";
-  if (!isRootPath) return;
-
-  window.location.replace(CA_PLAY_STORE_APP_URL);
-}, [caBillingEligible]);
 
   const caStoreUnlockLocally = () => {
     try { localStorage.setItem(CA_UNLOCK_STORAGE_KEY, "1"); } catch { /* ignore */ }
@@ -988,32 +1084,79 @@ export default function App() {
     try { localStorage.removeItem(CA_UNLOCK_STORAGE_KEY); } catch { /* ignore */ }
   };
 
-  const caGetPlayBillingService = async () => {
-    if (!caBillingEligible) throw new Error("billing_unavailable");
-
-    const getDgs =
-      (typeof navigator !== "undefined" && typeof navigator.getDigitalGoodsService === "function")
-        ? navigator.getDigitalGoodsService.bind(navigator)
-        : (typeof window !== "undefined" && typeof window.getDigitalGoodsService === "function")
-          ? window.getDigitalGoodsService.bind(window)
-          : null;
-
-    if (!getDgs) throw new Error("billing_unavailable");
-
-    // Retry: on some installs, DGS temporarily returns "client app unavailable"
-    let lastErr;
-    for (let i = 0; i < 8; i++) {
-      try {
-        return await getDgs(CA_PLAY_BILLING_STORE_ID);
-      } catch (e) {
-        lastErr = e;
-        const msg = String(e?.message || e || "").toLowerCase();
-        if (!msg.includes("client app unavailable")) throw e;
-        await new Promise((r) => setTimeout(r, 600));
-      }
-    }
-    throw lastErr || new Error("client app unavailable");
+  const caGetPurchaseToken = (purchaseLike) => {
+    return (
+      purchaseLike?.purchaseToken ||
+      purchaseLike?.token ||
+      purchaseLike?.purchase_token ||
+      purchaseLike?.details?.purchaseToken ||
+      purchaseLike?.details?.token ||
+      purchaseLike?.details?.purchase_token ||
+      purchaseLike?.details?.paymentMethodData?.token ||
+      purchaseLike?.details?.paymentMethodData?.purchaseToken ||
+      ""
+    );
   };
+
+  const caFindUnlockPurchase = (purchases) => {
+    if (!Array.isArray(purchases)) return null;
+    return purchases.find((p) => {
+      const id =
+        p?.sku ||
+        p?.productId ||
+        p?.itemId ||
+        p?.product ||
+        p?.id ||
+        "";
+      return id === CA_BASIC_UNLOCK_PRODUCT_ID || id === CA_BASIC_UNLOCK_PURCHASE_OPTION_ID;
+    }) || null;
+  };
+
+  const caVerifyPurchaseWithServer = async (purchaseToken) => {
+    const res = await fetch(CA_VERIFY_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        purchaseToken,
+        productId: CA_BASIC_UNLOCK_PRODUCT_ID,
+      }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      throw new Error(data?.error || "server_verification_failed");
+    }
+
+    return data;
+  };
+
+  const caGetPlayBillingService = async () => {
+  if (!caBillingEligible) throw new Error("billing_unavailable");
+
+  const getDgs =
+    (typeof navigator !== "undefined" && typeof navigator.getDigitalGoodsService === "function")
+      ? navigator.getDigitalGoodsService.bind(navigator)
+      : (typeof window !== "undefined" && typeof window.getDigitalGoodsService === "function")
+        ? window.getDigitalGoodsService.bind(window)
+        : null;
+
+  if (!getDgs) throw new Error("billing_unavailable");
+
+  // Retry: on some installs, DGS temporarily returns "client app unavailable"
+  let lastErr;
+  for (let i = 0; i < 8; i++) {
+    try {
+      return await getDgs(CA_PLAY_BILLING_STORE_ID);
+    } catch (e) {
+      lastErr = e;
+      const msg = String(e?.message || e || "").toLowerCase();
+      if (!msg.includes("client app unavailable")) throw e;
+      await new Promise((r) => setTimeout(r, 600));
+    }
+  }
+  throw lastErr || new Error("client app unavailable");
+};
 
   const caFormatPrice = (item) => {
     try {
@@ -1027,78 +1170,39 @@ export default function App() {
     }
   };
 
-  const caVerifyWithBackend = async (purchaseToken) => {
-    const res = await fetch(CA_VERIFY_ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        purchaseToken,
-        productId: CA_PRO_UNLOCK_PRODUCT_ID,
-      }),
-    });
-
-    let data = null;
-    try {
-      data = await res.json();
-    } catch {
-      data = null;
-    }
-
-    if (!res.ok) {
-      throw new Error(data?.error || "verification_failed");
-    }
-
-    if (!data?.ok || !data?.entitled) {
-      throw new Error(data?.error || data?.message || "not_entitled");
-    }
-
-    return data;
-  };
-
   const caCheckEntitlement = async (service) => {
-    try {
-      const purchases = (await service.listPurchases?.()) || [];
-      const hit = purchases.find((p) => {
-        const id =
-          p?.sku ||
-          p?.productId ||
-          p?.itemId ||
-          p?.product ||
-          p?.id ||
-          "";
+  try {
+    const purchases = await service.listPurchases();
+    const hit = caFindUnlockPurchase(purchases);
 
-        return id === CA_PRO_UNLOCK_PRODUCT_ID || id === CA_PRO_UNLOCK_PURCHASE_OPTION_ID;
-      });
+    if (!hit) {
+      setCaUnlocked(false);
+      caClearLocalUnlock();
+      return false;
+    }
 
-      if (!hit) {
-        setCaUnlocked(false);
-        caClearLocalUnlock();
-        return false;
-      }
+    const token = caGetPurchaseToken(hit);
+    if (!token) {
+      setCaUnlocked(false);
+      caClearLocalUnlock();
+      return false;
+    }
 
-      const token =
-        hit?.purchaseToken ||
-        hit?.token ||
-        hit?.purchase_token ||
-        hit?.paymentMethodData?.token ||
-        hit?.paymentMethodData?.purchaseToken;
+    const verified = await caVerifyPurchaseWithServer(token);
 
-      if (!token) return false;
-
-      const verified = await caVerifyWithBackend(token);
-      if (verified?.entitled) {
-        setCaUnlocked(true);
-        caStoreUnlockLocally();
-        return true;
-      }
-    } catch {
-      // ignore here; buy / restore flows surface concrete errors
+    if (verified?.ok && verified?.entitled) {
+      setCaUnlocked(true);
+      caStoreUnlockLocally();
+      return true;
     }
 
     setCaUnlocked(false);
     caClearLocalUnlock();
     return false;
-  };
+  } catch {
+    return false;
+  }
+};
   // Show the About screen automatically on the very first launch (after install).
   // After the user closes it once, we remember that choice in localStorage.
   const closeAbout = () => {
@@ -1127,28 +1231,49 @@ export default function App() {
   const [showMainMenu, setShowMainMenu] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [isPro, setIsPro] = useState(false);
+  
 
-  // Pro app uses its own one-time unlock product and secure backend verification.
+// Pro entitlement is decided at build-time (two-app model):
+  // - ClearAhead Basic: VITE_CLEARAHEAD_EDITION="basic" (or unset)
+  // - ClearAhead Pro:   VITE_CLEARAHEAD_EDITION="pro"
+  // No in-app purchases, no restore, no store/billing bridges.
+  const CA_EDITION = (import.meta.env.VITE_CLEARAHEAD_EDITION || import.meta.env.VITE_CLEARAHEAD_PRO || "basic");
+  const IS_PRO_BUILD = String(CA_EDITION).toLowerCase() === "pro" || String(CA_EDITION).toLowerCase() === "true" || String(CA_EDITION) === "1";
+  const caIsPublicBrowserLockPage = typeof window !== "undefined" && window.location.pathname === "/";
   useEffect(() => {
+    // Only Basic uses the unlock. Pro stays separate.
+    if (IS_PRO_BUILD) { setCaUnlocked(true); setCaUnlockChecked(true); return; }
+
+    // Never run billing checks on platforms without Play Billing bridge (Windows/web).
+    if (!caBillingEligible) { setCaUnlockChecked(true); return; }
+
     let cancelled = false;
 
     const init = async () => {
       setCaUnlockError("");
       setCaUnlockChecked(false);
 
-      if (!caBillingEligible) {
-        setCaUnlockChecked(true);
-        return;
+      // Fast path: local cache
+      try {
+        if (localStorage.getItem(CA_UNLOCK_STORAGE_KEY) === "1") {
+          setCaUnlocked(true);
+          setCaUnlockChecked(true);
+          return;
+        }
+      } catch {
+        // ignore
       }
 
       setCaUnlockLoading(true);
       try {
-        await new Promise((r) => setTimeout(r, 600));
+  // wait briefly after app launch so Play Billing service is ready
+  await new Promise(r => setTimeout(r, 600));
 
-        const service = await caGetPlayBillingService();
+  const service = await caGetPlayBillingService();
 
+        // Price label (best effort)
         try {
-          const details = await service.getDetails([CA_PRO_UNLOCK_SKU]);
+          const details = await service.getDetails([CA_BASIC_UNLOCK_SKU]);
           if (Array.isArray(details) && details[0]) {
             const formatted = caFormatPrice(details[0]);
             if (formatted && !cancelled) setCaUnlockPriceLabel(formatted);
@@ -1159,9 +1284,7 @@ export default function App() {
 
         await caCheckEntitlement(service);
       } catch (e) {
-        if (!cancelled) {
-          setCaUnlockError("Purchases are only available in the installed Android app.");
-        }
+        if (!cancelled) setCaUnlockError("Purchases are only available in the installed Android app.");
       } finally {
         if (!cancelled) {
           setCaUnlockLoading(false);
@@ -1173,127 +1296,119 @@ export default function App() {
     init();
 
     return () => { cancelled = true; };
-  }, [caBillingEligible]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [IS_PRO_BUILD]);
 
   // Show unlock overlay only after we've checked purchase state (prevents 1-frame flash / undefined var)
-  const caShowUnlockOverlay = false;
+  const caShowUnlockOverlay = (!IS_PRO_BUILD) && (!caUnlocked) && caUnlockChecked && caBillingEligible;
   const caHandleBuyUnlock = async () => {
-    setCaUnlockError("");
-    setCaUnlockLoading(true);
+  setCaUnlockError("");
+  setCaUnlockLoading(true);
 
-    try {
-      if (typeof window === "undefined" || typeof window.PaymentRequest !== "function") {
-        throw new Error("payment_request_unavailable");
-      }
-
-      const service = await caGetPlayBillingService();
-
-      const methodData = [{
-        supportedMethods: CA_PLAY_BILLING_STORE_ID,
-        data: { sku: CA_PRO_UNLOCK_PRODUCT_ID },
-      }];
-
-      const details = {
-        total: {
-          label: "ClearAhead Pro Unlock",
-          amount: { currency: "GBP", value: "0.00" },
-        },
-      };
-
-      const request = new window.PaymentRequest(methodData, details);
-
-      if (typeof request.canMakePayment === "function") {
-        const canPay = await request.canMakePayment();
-        if (!canPay) throw new Error("cannot_make_payment");
-      }
-
-      const response = await request.show();
-
-      const token =
-        response?.details?.purchaseToken ||
-        response?.details?.token ||
-        response?.details?.purchase_token ||
-        response?.details?.paymentMethodData?.token ||
-        response?.details?.paymentMethodData?.purchaseToken;
-
-      if (!token) {
-        throw new Error("missing_purchase_token");
-      }
-
-      await caVerifyWithBackend(token);
-
-      try { await response.complete("success"); } catch { /* ignore */ }
-
-      setCaUnlocked(true);
-      caStoreUnlockLocally();
-      setCaUnlockError("");
-    } catch (e) {
-      const msg = String(e?.message || e || "").toLowerCase();
-
-      if (msg.includes("already") || msg.includes("owned")) {
-        try {
-          const service2 = await caGetPlayBillingService();
-          await new Promise((r) => setTimeout(r, 400));
-          const ok = await caCheckEntitlement(service2);
-          if (ok) {
-            setCaUnlocked(true);
-            caStoreUnlockLocally();
-            setCaUnlockError("");
-            return;
-          }
-        } catch (_) {}
-      }
-
-      setCaUnlockError("Billing error: " + String(e?.message || e || "unknown"));
-    } finally {
-      setCaUnlockLoading(false);
+  try {
+    if (typeof window === "undefined" || typeof window.PaymentRequest !== "function") {
+      throw new Error("payment_request_unavailable");
     }
-  };
+
+    const service = await caGetPlayBillingService();
+
+    const methodData = [{
+      supportedMethods: CA_PLAY_BILLING_STORE_ID,
+      data: { sku: CA_BASIC_UNLOCK_PRODUCT_ID },
+    }];
+
+    const details = {
+      total: {
+        label: "ClearAhead Basic Unlock",
+        amount: { currency: "GBP", value: "0.00" },
+      },
+    };
+
+    const request = new window.PaymentRequest(methodData, details);
+
+    if (typeof request.canMakePayment === "function") {
+      const canPay = await request.canMakePayment();
+      if (!canPay) throw new Error("cannot_make_payment");
+    }
+
+    const response = await request.show();
+    const token = caGetPurchaseToken(response);
+
+    try { await response.complete("success"); } catch { /* ignore */ }
+
+    if (!token) {
+      throw new Error("missing_purchase_token");
+    }
+
+    const verified = await caVerifyPurchaseWithServer(token);
+
+    if (!verified?.ok || !verified?.entitled) {
+      throw new Error(verified?.error || "purchase_not_verified");
+    }
+
+    setCaUnlocked(true);
+    caStoreUnlockLocally();
+    setCaUnlockError("");
+  } catch (e) {
+    const msg = String(e?.message || e || "").toLowerCase();
+
+    if (msg.includes("already") || msg.includes("owned")) {
+      try {
+        await caHandleRestoreUnlock();
+        return;
+      } catch (_) {
+        // ignore and fall through
+      }
+    }
+
+    setCaUnlockError("Billing error: " + String(e?.message || e || "unknown"));
+  } finally {
+    setCaUnlockLoading(false);
+  }
+};
 
   const caHandleRestoreUnlock = async () => {
-    setCaUnlockError("");
-    setCaUnlockLoading(true);
+  setCaUnlockError("");
+  setCaUnlockLoading(true);
 
-    try {
-      const service = await caGetPlayBillingService();
+  try {
+    const service = await caGetPlayBillingService();
+    const purchases = (await service.listPurchases?.()) || [];
+    const hit = caFindUnlockPurchase(purchases);
 
-      const purchases = (await service.listPurchases?.()) || [];
-      const hit = purchases.find((p) => {
-        const id = p?.sku || p?.productId || p?.itemId || p?.product || p?.id || "";
-        return id === CA_PRO_UNLOCK_PRODUCT_ID || id === CA_PRO_UNLOCK_PURCHASE_OPTION_ID;
-      });
-
-      if (!hit) {
-        setCaUnlockError("No purchase found on this Google account yet.");
-        return;
-      }
-
-      const token =
-        hit?.purchaseToken ||
-        hit?.token ||
-        hit?.purchase_token ||
-        hit?.paymentMethodData?.token ||
-        hit?.paymentMethodData?.purchaseToken;
-
-      if (!token) {
-        setCaUnlockError("No purchase token found for this Google account.");
-        return;
-      }
-
-      await caVerifyWithBackend(token);
-
-      setCaUnlocked(true);
-      caStoreUnlockLocally();
-      setCaUnlockError("");
-    } catch (e) {
-      setCaUnlockError("Restore error: " + String(e?.message || e || "unknown"));
-    } finally {
-      setCaUnlockLoading(false);
+    if (!hit) {
+      setCaUnlocked(false);
+      caClearLocalUnlock();
+      setCaUnlockError("No purchase found on this Google account yet.");
+      return;
     }
-  };
+
+    const token = caGetPurchaseToken(hit);
+    if (!token) {
+      throw new Error("missing_purchase_token");
+    }
+
+    const verified = await caVerifyPurchaseWithServer(token);
+
+    if (!verified?.ok || !verified?.entitled) {
+      setCaUnlocked(false);
+      caClearLocalUnlock();
+      setCaUnlockError("Purchase found, but Google Play has not confirmed the unlock yet.");
+      return;
+    }
+
+    setCaUnlocked(true);
+    caStoreUnlockLocally();
+    setCaUnlockError("");
+  } catch (e) {
+    setCaUnlockError("Restore error: " + String(e?.message || e || "unknown"));
+  } finally {
+    setCaUnlockLoading(false);
+  }
+};
   useEffect(() => {
-    setIsPro(true);
-  }, []);
+    setIsPro(IS_PRO_BUILD);
+  }, [IS_PRO_BUILD]);
   // Pro lookahead (Pro can choose 5–12 weeks; Basic is locked to 5 weeks)
   const [proLookaheadWeeks, setProLookaheadWeeks] = useState(5);
 
@@ -2680,6 +2795,13 @@ const labelStyle = {
 }
 
 
+  if (caIsPublicBrowserLockPage) {
+    return (
+      <div className="appShell">
+        <CABasicStoreLockPage />
+      </div>
+    );
+  }
 
   return (
     <div className="appShell">
@@ -2802,9 +2924,7 @@ const labelStyle = {
                         type="button"
                         onClick={() => { setShowProInfo(true); setShowMainMenu(false); }}
                         style={menuButtonStyle}
-                      >
-                        Go Pro
-                      </button>
+                      >🚀 Go Pro</button>
                     ) : (
                       <div style={{ ...menuButtonStyle, cursor: "default", opacity: 0.72 }}>
                         Pro
@@ -2815,25 +2935,19 @@ const labelStyle = {
                       type="button"
                       onClick={() => { setShowAbout(true); setShowMainMenu(false); }}
                       style={menuButtonStyle}
-                    >
-                      About
-                    </button>
+                    >ℹ️ About</button>
 
                     <button
                       type="button"
                       onClick={() => { setShowDisclaimer(true); setShowMainMenu(false); }}
                       style={menuButtonStyle}
-                    >
-                      Disclaimer
-                    </button>
+                    >⚠️ Disclaimer</button>
 
                     <button
                       type="button"
                       onClick={clearAllData}
                       style={menuButtonStyle}
-                    >
-                      Reset data
-                    </button>
+                    >♻️ Reset data</button>
 
                     <div style={{ height: 4 }} />
 
@@ -2842,18 +2956,14 @@ const labelStyle = {
                       onClick={handleShare}
                       className="caBtnPurple"
                       style={menuAccentButtonStyle}
-                    >
-                      Share
-                    </button>
+                    >📤 Share</button>
 
                     <button
                       type="button"
                       onClick={handleLeaveReview}
                       className="caBtnPurple"
                       style={menuAccentButtonStyle}
-                    >
-                      Give us a review
-                    </button>
+                    >⭐ Give us a review</button>
                   </div>
                 </div>
               )}
@@ -2869,32 +2979,28 @@ const labelStyle = {
           {showResetConfirm && (
             <div className="caModalOverlay" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, zIndex: 1000 }}>
               <div className="caModalCard" style={{ width: "100%", maxWidth: 420, borderRadius: 20, border: "1px solid rgba(255,255,255,0.12)", background: "linear-gradient(180deg, rgba(16,26,58,0.98) 0%, rgba(11,16,38,0.98) 100%)", boxShadow: "0 20px 44px rgba(0,0,0,0.35)", padding: 18 }}>
-                <div style={{ fontWeight: 900, fontSize: 20, marginBottom: 10 }}>Reset data</div>
+                <div style={{ fontWeight: 900, fontSize: 20, marginBottom: 10 }}>♻️ Reset data</div>
                 <div style={{ lineHeight: 1.5, opacity: 0.92 }}>
                   This will reset all your ClearAhead data and let you start fresh.<br /><br />
                   This cannot be undone. Are you sure?
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 18 }}>
                   <button type="button" onClick={() => setShowResetConfirm(false)} style={menuButtonStyle}>Cancel</button>
-                  <button type="button" className="caBtnPurple" onClick={confirmClearAllData} style={{ ...menuAccentButtonStyle, textAlign: "center" }}>Reset data</button>
+                  <button type="button" className="caBtnPurple" onClick={confirmClearAllData} style={{ ...menuAccentButtonStyle, textAlign: "center" }}>♻️ Reset data</button>
                 </div>
               </div>
             </div>
           )}
 
           <div style={{ marginTop: 14 }}>
-            <div style={{ fontSize: 12, fontWeight: 800, color: "rgba(255,255,255,0.95)", marginBottom: 6 }}>
-              Quick actions
-            </div>
+            <div style={{ fontSize: 12, fontWeight: 800, color: "rgba(255,255,255,0.95)", marginBottom: 6 }}>⚡ Quick actions</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", columnGap: 8, rowGap: 8, alignItems: "stretch" }}>
               <button
                 type="button"
                 onClick={() => { setFocusSection("spend"); goTo(4); }}
                 className="caBtnTeal"
                 style={homeQuickButtonStyle}
-              >
-                Log spending
-              </button>
+              >🛒 Log spending</button>
 
               <button
                 type="button"
@@ -2902,18 +3008,14 @@ const labelStyle = {
                 title="What if I buy this?"
                 className="caBtnTeal"
                 style={homeQuickButtonStyle}
-              >
-                What if I buy this?
-              </button>
+              >🤔 What if I buy this?</button>
 
               <button
                 type="button"
                 onClick={() => { setFocusSection("goals"); goTo(4); }}
                 className="caBtnTeal"
                 style={{ ...homeQuickButtonStyle, gridColumn: "1 / -1" }}
-              >
-                Savings goals
-              </button>
+              >🎯 Savings goals</button>
             </div>
           </div>
 
@@ -3006,9 +3108,7 @@ const labelStyle = {
                       cursor: "pointer",
                       fontWeight: 800,
                     }}
-                  >
-                    Overview
-                  </button>
+                  >📊 Overview</button>
 
                   <button
                     className="caBtnPurple"
@@ -3023,9 +3123,7 @@ const labelStyle = {
                       cursor: "pointer",
                       fontWeight: 800,
                     }}
-                  >
-                    Review
-                  </button>
+                  >📋 Review</button>
                 </div>
 
                 <button
@@ -3042,9 +3140,7 @@ const labelStyle = {
                     cursor: "pointer",
                     fontWeight: 800,
                   }}
-                >
-                  Pro calendar
-                </button>
+                >🗓️ Pro calendar</button>
 
                 <div style={{ fontSize: 12, opacity: 0.65 }}>v1.20</div>
               </div>
@@ -3062,7 +3158,7 @@ const labelStyle = {
                 }}
               >
                 <div>
-                  <div style={{ fontWeight: 900, fontSize: 18 }}>Overview</div>
+                  <div style={{ fontWeight: 900, fontSize: 18 }}>📊 Overview</div>
                   <div style={{ fontSize: 12, opacity: 0.8 }}>
                     Your 5-week picture is shown here on its own page to keep the home screen cleaner.
                   </div>
@@ -3114,111 +3210,87 @@ const labelStyle = {
                 </div>
               </div>
 
-              <div style={{ display: "grid", gap: 12, marginTop: 10 }}>
-  <div
-    style={{
-      padding: 12,
-      borderRadius: 12,
-      border: "1px solid rgba(255,255,255,0.10)",
-      background: "rgba(0,0,0,0.12)",
-      width: "100%",
-      boxSizing: "border-box",
-    }}
-  >
-    <div style={{ fontSize: 12, opacity: 0.8 }}>Window</div>
-    <div style={{ fontWeight: 800 }}>
-      {displayUKDate(startDate)} → {displayUKDate(lookahead.windowEndISO)}
-    </div>
+              <div style={{ marginTop: 10, padding: 12, borderRadius: 12, border: "1px solid rgba(255,255,255,0.10)", background: "rgba(0,0,0,0.12)", width: "100%", boxSizing: "border-box" }}>
+                <div style={{ fontSize: 12, opacity: 0.8 }}>Window</div>
+                <div style={{ fontWeight: 800 }}>
+                  {displayUKDate(startDate)} → {displayUKDate(lookahead.windowEndISO)}
+                </div>
 
-    <div
-      style={{
-        marginTop: 14,
-        fontSize: 12,
-        letterSpacing: 0.3,
-        textTransform: "uppercase",
-        opacity: 0.65,
-      }}
-    >
-      Available now
-    </div>
+                <div
+                  style={{
+                    marginTop: 14,
+                    fontSize: 12,
+                    letterSpacing: 0.3,
+                    textTransform: "uppercase",
+                    opacity: 0.65,
+                  }}
+                >
+                  Available now
+                </div>
 
-    <div
-      style={{
-        fontSize: 40,
-        fontWeight: 900,
-        letterSpacing: -0.8,
-        marginTop: 2,
-        color: "rgba(241,245,249,0.98)",
-      }}
-    >
-      {formatMoney(lookahead.mayBeAvailable.toFixed(2))}
-    </div>
+                <div
+                  style={{
+                    fontSize: 40,
+                    fontWeight: 900,
+                    letterSpacing: -0.8,
+                    marginTop: 2,
+                    color: "rgba(241,245,249,0.98)",
+                  }}
+                >
+                  {formatMoney(lookahead.mayBeAvailable.toFixed(2))}
+                </div>
 
-    <div style={{ marginTop: 10, fontSize: 12, letterSpacing: 0.3, textTransform: "uppercase", opacity: 0.65 }}>
-      Safe number
-    </div>
-    <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: -0.6, marginTop: 2, color: "rgba(241,245,249,0.98)" }}>
-      {formatMoney(Math.max(0, lookahead.mayBeAvailable - 250).toFixed(2))}
-    </div>
+                <div style={{ marginTop: 10, fontSize: 12, letterSpacing: 0.3, textTransform: "uppercase", opacity: 0.65 }}>
+                  Safe number
+                </div>
+                <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: -0.6, marginTop: 2, color: "rgba(241,245,249,0.98)" }}>
+                  {formatMoney(Math.max(0, lookahead.mayBeAvailable - 250).toFixed(2))}
+                </div>
+                {lookahead.mayBeAvailable > 0 && lookahead.mayBeAvailable - 250 <= 0 && (
+                  <div style={{ marginTop: 8, fontSize: 12, opacity: 0.88, lineHeight: 1.35 }}>
+                    <div style={{ fontWeight: 800 }}>You still have Available now to use.</div>
+                    <div>Safe to spend is £0 because ClearAhead is holding back a little for safety.</div>
+                  </div>
+                )}
+                <div style={{ marginTop: 6, fontSize: 12, opacity: 0.78, lineHeight: 1.35 }}>
+                  Safe number is a cautious guide — it leaves a small {formatMoney(250)} buffer aside for surprises.
+                </div>
+                <div style={{ marginTop: 6, fontSize: 12, opacity: 0.78, lineHeight: 1.35 }}>
+                  Available now is your projected amount across the next {effectiveLookaheadWeeks} weeks, before the safety buffer.
+                </div>
 
-    {lookahead.mayBeAvailable > 0 && lookahead.mayBeAvailable - 250 <= 0 && (
-      <div style={{ marginTop: 8, fontSize: 12, opacity: 0.88, lineHeight: 1.35 }}>
-        <div style={{ fontWeight: 800 }}>You still have Available now to use.</div>
-        <div>Safe to spend is £0 because ClearAhead is holding back a little for safety.</div>
-      </div>
-    )}
+                <div style={{ marginTop: 10, fontSize: 12, opacity: 0.8 }}>Lowest projected balance in next {effectiveLookaheadWeeks} weeks</div>
+                <div style={{ fontWeight: 800 }}>
+                  {formatMoney(lookahead.lowest.toFixed(2))} on {displayUKDate(lookahead.lowestISO)}
+                </div>
 
-    <div style={{ marginTop: 6, fontSize: 12, opacity: 0.78, lineHeight: 1.35 }}>
-      Safe number is a cautious guide — it leaves a small {formatMoney(250)} buffer aside for surprises.
-    </div>
-    <div style={{ marginTop: 6, fontSize: 12, opacity: 0.78, lineHeight: 1.35 }}>
-      Available now is your projected amount across the next {effectiveLookaheadWeeks} weeks, before the safety buffer.
-    </div>
-  </div>
+                <div style={{ marginTop: 10, fontSize: 12, opacity: 0.8 }}>Confidence</div>
+                <div style={{ fontWeight: 800 }}>{lookahead.confidence}</div>
 
-  <div
-    style={{
-      padding: 12,
-      borderRadius: 12,
-      border: "1px solid rgba(255,255,255,0.10)",
-      background: "rgba(0,0,0,0.12)",
-      width: "100%",
-      boxSizing: "border-box",
-    }}
-  >
-    <div style={{ fontSize: 12, opacity: 0.8 }}>Lowest projected balance in next {effectiveLookaheadWeeks} weeks</div>
-    <div style={{ fontWeight: 800 }}>
-      {formatMoney(lookahead.lowest.toFixed(2))} on {displayUKDate(lookahead.lowestISO)}
-    </div>
+                <div style={{ marginTop: 8, fontSize: 12, opacity: 0.8 }}>
+                  Why this confidence:
+                  <ul style={{ marginTop: 6, marginBottom: 0, paddingLeft: 18 }}>
+                    {lookahead.reasons.map((r, i) => (
+                      <li key={i} style={{ marginBottom: 4 }}>
+                        {r}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
 
-    <div style={{ marginTop: 10, fontSize: 12, opacity: 0.8 }}>Confidence</div>
-    <div style={{ fontWeight: 800 }}>{lookahead.confidence}</div>
+                <div style={{ marginTop: 10, fontSize: 12, opacity: 0.75 }}>
+                  Gentle nudge: If possible, keeping a small buffer can help with surprises (repairs, school costs) and future plans.
+                </div>
 
-    <div style={{ marginTop: 8, fontSize: 12, opacity: 0.8 }}>
-      Why this confidence:
-      <ul style={{ marginTop: 6, marginBottom: 0, paddingLeft: 18 }}>
-        {lookahead.reasons.map((r, i) => (
-          <li key={i} style={{ marginBottom: 4 }}>
-            {r}
-          </li>
-        ))}
-      </ul>
-    </div>
-
-    <div style={{ marginTop: 10, fontSize: 12, opacity: 0.75 }}>
-      Gentle nudge: If possible, keeping a small buffer can help with surprises (repairs, school costs) and future plans.
-    </div>
-
-    {lookahead.lowest < 0 && (
-      <div style={{ marginTop: 12, padding: 10, borderRadius: 12, border: "1px solid rgba(255,170,0,0.35)", background: "rgba(255,170,0,0.10)" }}>
-        <div style={{ fontWeight: 900 }}>⚠️ Tight period detected</div>
-        <div style={{ fontSize: 12, opacity: 0.85, marginTop: 6 }}>
-          Based on what’s entered (including spending + goals if included), the projection dips below {formatMoney(0)} at least once in the next {effectiveLookaheadWeeks} weeks.
-        </div>
-      </div>
-    )}
-  </div>
-</div>
+                {lookahead.lowest < 0 && (
+                  <div style={{ marginTop: 12, padding: 10, borderRadius: 12, border: "1px solid rgba(255,170,0,0.35)", background: "rgba(255,170,0,0.10)" }}>
+                    <div style={{ fontWeight: 900 }}>⚠️ Tight period detected</div>
+                    <div style={{ fontSize: 12, opacity: 0.85, marginTop: 6 }}>
+                      Based on what’s entered (including spending + goals if included), the projection dips below {formatMoney(0)} at least once in the next {effectiveLookaheadWeeks} weeks.
+                    </div>
+                  </div>
+                )}
+              </div>
             </>
           )}
         </div>
@@ -3267,11 +3339,11 @@ const labelStyle = {
 {/* ✅ INCOME SECTION (grouped) */}
 
 <div style={sectionBox}>
-  <div style={{ fontWeight: 900, marginBottom: 10 }}>Income</div>
+  <div style={{ fontWeight: 900, marginBottom: 10 }}>💷 Income</div>
 
   <IncomeGroupButton
     id="wage"
-    title="Wage / Salary"
+    title="💼 Wage / Salary"
     subtitle="One or more jobs (add / edit / remove)"
     incomeSection={incomeSection}
     setIncomeSection={setIncomeSection}
@@ -3279,6 +3351,7 @@ const labelStyle = {
   />
   {incomeSection === "wage" && (
     <div style={{ marginBottom: 14 }}>
+
 {/* Wage / Salary (multi jobs: add / edit / remove) */}
 {(() => {
   const wageJobs = incomes.filter((x) => x.type === "wage_job");
@@ -3320,9 +3393,8 @@ const labelStyle = {
 
   return (
     <div style={{ marginBottom: 14 }}>
-      <div style={{ fontWeight: 900 }}>Wage / Salary</div>
+      <div style={{ fontWeight: 900 }}>💼 Wage / Salary</div>
 
-      {/* Saved jobs */}
       {hasJobs && (
         <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
           {wageJobs.map((job) => {
@@ -3455,7 +3527,6 @@ const labelStyle = {
         </div>
       )}
 
-      {/* Add job form: show immediately if there are no saved jobs */}
       {(wageAddOpen || !hasJobs) && (
         <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
           <div>
@@ -3539,7 +3610,7 @@ const labelStyle = {
 
   <IncomeGroupButton
     id="benefits"
-    title="Government benefits"
+    title="🏛️ Government benefits"
     subtitle="Universal Credit, PIP, Child Benefit, ESA, etc."
     incomeSection={incomeSection}
     setIncomeSection={setIncomeSection}
@@ -3586,7 +3657,7 @@ const labelStyle = {
 
   <IncomeGroupButton
     id="other"
-    title="Other income"
+    title="➕ Other income"
     subtitle="Child maintenance, side work, refunds, support from family"
     incomeSection={incomeSection}
     setIncomeSection={setIncomeSection}
@@ -3812,7 +3883,7 @@ const labelStyle = {
 )}
 {step === 3 && (
   <div style={cardStyle}>
-    <h2 style={{ marginTop: 0 }}>Fixed bills</h2>
+    <h2 style={{ marginTop: 0 }}>🧾 Fixed bills</h2>
 
     {renderStepper(3)}
 
@@ -3848,7 +3919,7 @@ const labelStyle = {
       "If you tick Vehicle costs, you’ll be able to enter finance/insurance/tax/breakdown separately.",
     ])}
 <div style={sectionBox}>
-  <div style={{ fontWeight: 900, marginBottom: 10 }}>Bills</div>
+  <div style={{ fontWeight: 900, marginBottom: 10 }}>🧾 Bills</div>
 
   {(() => {
     const getBill = (id) => bills.find((b) => b.id === id);
@@ -3862,7 +3933,7 @@ const labelStyle = {
     return (
       <div>
         {/* --- GROUP 1: Utility bills --- */}
-        <BillsGroupButton id="utility" title="Utility bills" subtitle="Gas, electric, water, internet, TV licence"  billsSection={billsSection} setBillsSection={setBillsSection} setActiveBillId={setActiveBillId} />
+        <BillsGroupButton id="utility" title="💡 Utility bills" subtitle="Gas, electric, water, internet, TV licence"  billsSection={billsSection} setBillsSection={setBillsSection} setActiveBillId={setActiveBillId} />
         {billsSection === "utility" && (
           <div style={{ marginBottom: 14 }}>
             {utilityIds.map((id) => (
@@ -3872,7 +3943,7 @@ const labelStyle = {
         )}
 
         {/* --- GROUP 2: Personal bills --- */}
-        <BillsGroupButton id="personal" title="Personal bills" subtitle="Phone, home insurance, child maintenance"  billsSection={billsSection} setBillsSection={setBillsSection} setActiveBillId={setActiveBillId} />
+        <BillsGroupButton id="personal" title="👤 Personal bills" subtitle="Phone, home insurance, child maintenance"  billsSection={billsSection} setBillsSection={setBillsSection} setActiveBillId={setActiveBillId} />
         {billsSection === "personal" && (
           <div style={{ marginBottom: 14 }}>
             {personalIds.map((id) => (
@@ -3882,7 +3953,7 @@ const labelStyle = {
         )}
 
         {/* --- GROUP 3: Vehicle (must be above other essential bills) --- */}
-        <BillsGroupButton id="vehicle" title="Vehicle" subtitle="Finance, insurance, tax, breakdown (separate inputs)"  billsSection={billsSection} setBillsSection={setBillsSection} setActiveBillId={setActiveBillId} />
+        <BillsGroupButton id="vehicle" title="🚗 Vehicle" subtitle="Finance, insurance, tax, breakdown (separate inputs)"  billsSection={billsSection} setBillsSection={setBillsSection} setActiveBillId={setActiveBillId} />
         {billsSection === "vehicle" && (
           <div style={{ marginBottom: 14 }}>
             {(() => {
@@ -4584,7 +4655,7 @@ const labelStyle = {
         )}
 
         {/* --- GROUP 4: Other essential bills (with multi-add) --- */}
-        <BillsGroupButton id="other" title="Other essential bills" subtitle="Rent, council tax, and anything else you must pay"  billsSection={billsSection} setBillsSection={setBillsSection} setActiveBillId={setActiveBillId} />
+        <BillsGroupButton id="other" title="🏠 Other essential bills" subtitle="Rent, council tax, and anything else you must pay"  billsSection={billsSection} setBillsSection={setBillsSection} setActiveBillId={setActiveBillId} />
         {billsSection === "other" && (
           <div style={{ marginBottom: 14 }}>
             {otherFixedIds.map((id) => (
@@ -4602,7 +4673,7 @@ const labelStyle = {
         )}
 
         {/* --- GROUP 5: Credit cards (minimum payments) --- */}
-        <BillsGroupButton id="credit" title="Credit cards (minimum payments)" subtitle="Only the minimum required payments"  billsSection={billsSection} setBillsSection={setBillsSection} setActiveBillId={setActiveBillId} />
+        <BillsGroupButton id="credit" title="💳 Credit cards (minimum payments)" subtitle="Only the minimum required payments"  billsSection={billsSection} setBillsSection={setBillsSection} setActiveBillId={setActiveBillId} />
         {billsSection === "credit" && (
           <div style={{ marginBottom: 6 }}>
             <BillsBillDetails bill={getBill(creditId)}  updateBill={updateBill} removeOtherEssentialBill={removeOtherEssentialBill} freqOptions={freqOptions} inputStyle={inputStyle} subLabel={subLabel} rowBox={rowBox} activeBillId={activeBillId} setActiveBillId={setActiveBillId} />
@@ -4651,7 +4722,7 @@ const labelStyle = {
       
 {step === 4 && (
   <div style={cardStyle}>
-    <h2 style={{ marginTop: 0 }}>Extras</h2>
+    <h2 style={{ marginTop: 0 }}>✨ Extras</h2>
 
     {renderStepper(4)}
 {/* =========================
@@ -4660,7 +4731,7 @@ const labelStyle = {
 
 {/* SPENDING LOG */}
 <div ref={spendRef} style={sectionBox}>
-  <div style={{ fontWeight: 900, marginBottom: 8 }}>Log spending</div>
+  <div style={{ fontWeight: 900, marginBottom: 8 }}>🛒 Log spending</div>
 
   <div style={{ display: "grid", gap: 10 }}>
     <div>
@@ -4753,7 +4824,7 @@ const labelStyle = {
 
 {/* WHAT-IF */}
 <div ref={whatIfRef} style={sectionBox}>
-  <div style={{ fontWeight: 900, marginBottom: 8 }}>What if I buy this?</div>
+  <div style={{ fontWeight: 900, marginBottom: 8 }}>🤔 What if I buy this?</div>
 
   <label style={{ display: "flex", gap: 10, alignItems: "center" }}>
     <input
@@ -4850,7 +4921,7 @@ const labelStyle = {
 
 {/* SAVINGS GOALS */}
 <div ref={goalsRef} style={sectionBox}>
-  <div style={{ fontWeight: 900, marginBottom: 8 }}>Savings goals</div>
+  <div style={{ fontWeight: 900, marginBottom: 8 }}>🎯 Savings goals</div>
 
   <label style={{ display: "flex", gap: 10, alignItems: "center" }}>
     <input
@@ -5058,7 +5129,7 @@ const labelStyle = {
 
 {step === 5 && (
         <div style={cardStyle}>
-          <h2 style={{ marginTop: 0 }}>Review</h2>
+          <h2 style={{ marginTop: 0 }}>📋 Review</h2>
 
           {renderStepper(5)}
 
@@ -5161,122 +5232,55 @@ const labelStyle = {
             </button>
 
             </div>
-     {isPro && (
-  <div style={{ display: "grid", gap: 12, marginTop: 12, marginBottom: 10 }}>
-    <div
-      style={{
-        padding: 12,
-        borderRadius: 14,
-        border: "1px solid rgba(255,255,255,0.14)",
-        background: "rgba(255,255,255,0.06)",
-      }}
-    >
-      <div style={{ fontWeight: 900, marginBottom: 6 }}>Pro insights</div>
-      <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 8 }}>
-        Pro insights gives you a deeper view of all events across your full window.
+{isPro && (
+  <div
+    style={{
+      marginTop: 12,
+      marginBottom: 10,
+      padding: 12,
+      borderRadius: 14,
+      border: "1px solid rgba(255,255,255,0.14)",
+      background: "rgba(255,255,255,0.06)",
+    }}
+  >
+    <div style={{ fontWeight: 900, marginBottom: 6 }}>Pro insights</div>
+    <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 8 }}>Pro insights gives you a in depth view of all events over your full window.</div>
+
+    <div style={{ display: "grid", gap: 6, fontSize: 12,
+    minHeight: 42, opacity: 0.92 }}>
+      <div>
+        <span style={{ opacity: 0.8 }}>Total income:</span>{" "}
+        <span style={{ fontWeight: 900 }}>{formatMoney((proInsights.incomeTotal || 0).toFixed(2))}</span>
       </div>
-
-      <div style={{ display: "grid", gap: 8 }}>
-        <div
-          style={{
-            padding: "10px 12px",
-            borderRadius: 12,
-            border: "1px solid rgba(255,255,255,0.10)",
-            background: "rgba(0,0,0,0.16)",
-          }}
-        >
-          <div style={{ fontSize: 12, opacity: 0.75 }}>Total income</div>
-          <div style={{ fontWeight: 900, marginTop: 4 }}>
-            {formatMoney((proInsights.incomeTotal || 0).toFixed(2))}
-          </div>
-        </div>
-
-        <div
-          style={{
-            padding: "10px 12px",
-            borderRadius: 12,
-            border: "1px solid rgba(255,255,255,0.10)",
-            background: "rgba(0,0,0,0.16)",
-          }}
-        >
-          <div style={{ fontSize: 12, opacity: 0.75 }}>Total outgoings</div>
-          <div style={{ fontWeight: 900, marginTop: 4 }}>
-            {formatMoney((proInsights.outgoingTotal || 0).toFixed(2))}
-          </div>
-        </div>
-
-        <div
-          style={{
-            padding: "10px 12px",
-            borderRadius: 12,
-            border: "1px solid rgba(255,255,255,0.10)",
-            background: "rgba(0,0,0,0.16)",
-          }}
-        >
-          <div style={{ fontSize: 12, opacity: 0.75 }}>Net</div>
-          <div style={{ fontWeight: 900, marginTop: 4 }}>
-            {formatMoney((proInsights.net || 0).toFixed(2))}
-          </div>
-        </div>
+      <div>
+        <span style={{ opacity: 0.8 }}>Total outgoings:</span>{" "}
+        <span style={{ fontWeight: 900 }}>{formatMoney((proInsights.outgoingTotal || 0).toFixed(2))}</span>
       </div>
+      <div>
+        <span style={{ opacity: 0.8 }}>Net:</span>{" "}
+        <span style={{ fontWeight: 900 }}>
+          {formatMoney((proInsights.net || 0).toFixed(2))}
+        </span>
+      </div>
+      {Number.isFinite(proInsights.lowest) && (
+        <div>
+          <span style={{ opacity: 0.8 }}>Lowest balance:</span>{" "}
+          <span style={{ fontWeight: 900 }}>{formatMoney(proInsights.lowest.toFixed(2))}</span>
+        </div>
+      )}
+      {Number.isFinite(proInsights.highest) && (
+        <div>
+          <span style={{ opacity: 0.8 }}>Highest balance:</span>{" "}
+          <span style={{ fontWeight: 900 }}>{formatMoney(proInsights.highest.toFixed(2))}</span>
+        </div>
+      )}
     </div>
 
-    <div
-      style={{
-        padding: 12,
-        borderRadius: 14,
-        border: "1px solid rgba(255,255,255,0.14)",
-        background: "rgba(255,255,255,0.06)",
-      }}
-    >
-      <div style={{ fontWeight: 900, marginBottom: 8 }}>Balance range</div>
-
-      <div style={{ display: "grid", gap: 8 }}>
-        {Number.isFinite(proInsights.lowest) && (
-          <div
-            style={{
-              padding: "10px 12px",
-              borderRadius: 12,
-              border: "1px solid rgba(255,255,255,0.10)",
-              background: "rgba(0,0,0,0.16)",
-            }}
-          >
-            <div style={{ fontSize: 12, opacity: 0.75 }}>Lowest balance</div>
-            <div style={{ fontWeight: 900, marginTop: 4 }}>
-              {formatMoney(proInsights.lowest.toFixed(2))}
-            </div>
-          </div>
-        )}
-
-        {Number.isFinite(proInsights.highest) && (
-          <div
-            style={{
-              padding: "10px 12px",
-              borderRadius: 12,
-              border: "1px solid rgba(255,255,255,0.10)",
-              background: "rgba(0,0,0,0.16)",
-            }}
-          >
-            <div style={{ fontSize: 12, opacity: 0.75 }}>Highest balance</div>
-            <div style={{ fontWeight: 900, marginTop: 4 }}>
-              {formatMoney(proInsights.highest.toFixed(2))}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-
+    
     {proInsights.topIn?.length > 0 && (
-      <div
-        style={{
-          padding: 12,
-          borderRadius: 14,
-          border: "1px solid rgba(255,255,255,0.14)",
-          background: "rgba(255,255,255,0.06)",
-        }}
-      >
-        <div style={{ fontWeight: 900, fontSize: 12, opacity: 0.9, marginBottom: 8 }}>
-          Biggest incoming
+      <div style={{ marginTop: 10 }}>
+        <div style={{ fontWeight: 900, fontSize: 12, opacity: 0.85, marginBottom: 6 }}>
+          Biggest incoming (by amount)
         </div>
         <div style={{ display: "grid", gap: 6 }}>
           {proInsights.topIn.map((x) => (
@@ -5284,7 +5288,7 @@ const labelStyle = {
               key={x.label}
               style={{
                 display: "flex",
-                justifyContent: "space-between",
+                justifyContent: "flex-start",
                 gap: 10,
                 padding: "8px 10px",
                 borderRadius: 12,
@@ -5292,7 +5296,8 @@ const labelStyle = {
                 background: "rgba(0,0,0,0.16)",
               }}
             >
-              <div style={{ fontSize: 12, opacity: 0.95 }}>{x.label}</div>
+              <div style={{ fontSize: 12,
+    minHeight: 42, opacity: 0.95 }}>{x.label}</div>
               <div style={{ fontWeight: 900 }}>{formatMoney((x.amt || 0).toFixed(2))}</div>
             </div>
           ))}
@@ -5300,17 +5305,10 @@ const labelStyle = {
       </div>
     )}
 
-    {proInsights.topOut?.length > 0 && (
-      <div
-        style={{
-          padding: 12,
-          borderRadius: 14,
-          border: "1px solid rgba(255,255,255,0.14)",
-          background: "rgba(255,255,255,0.06)",
-        }}
-      >
-        <div style={{ fontWeight: 900, fontSize: 12, opacity: 0.9, marginBottom: 8 }}>
-          Biggest outgoings
+{proInsights.topOut?.length > 0 && (
+      <div style={{ marginTop: 10 }}>
+        <div style={{ fontWeight: 900, fontSize: 12, opacity: 0.85, marginBottom: 6 }}>
+          Biggest outgoings (by amount)
         </div>
         <div style={{ display: "grid", gap: 6 }}>
           {proInsights.topOut.map((x) => (
@@ -5318,7 +5316,7 @@ const labelStyle = {
               key={x.label}
               style={{
                 display: "flex",
-                justifyContent: "space-between",
+                justifyContent: "flex-start",
                 gap: 10,
                 padding: "8px 10px",
                 borderRadius: 12,
@@ -5326,7 +5324,8 @@ const labelStyle = {
                 background: "rgba(0,0,0,0.16)",
               }}
             >
-              <div style={{ fontSize: 12, opacity: 0.95 }}>{x.label}</div>
+              <div style={{ fontSize: 12,
+    minHeight: 42, opacity: 0.95 }}>{x.label}</div>
               <div style={{ fontWeight: 900 }}>{formatMoney((x.amt || 0).toFixed(2))}</div>
             </div>
           ))}
@@ -5359,7 +5358,7 @@ const labelStyle = {
               : cardStyle
           }
         >
-          <h2 style={{ marginTop: 0 }}>Pro calendar</h2>
+          <h2 style={{ marginTop: 0 }}>🗓️ Pro calendar</h2>
 
           {renderStepper(6)}
 
@@ -6042,7 +6041,7 @@ return (
             }}
           >
             <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-start", gap: 12 }}>
-              <div style={{ fontWeight: 900, fontSize: 18 }}>Disclaimer</div>
+              <div style={{ fontWeight: 900, fontSize: 18 }}>⚠️ Disclaimer</div>
               <button
                 type="button"
                 onClick={() => setShowDisclaimer(false)}
@@ -6277,7 +6276,7 @@ return (
       )}
 
   {caShowUnlockOverlay && (
-    <CAProUnlockOverlay
+    <CABasicUnlockOverlay
       priceLabel={caUnlockPriceLabel}
       loading={caUnlockLoading}
       error={caUnlockError}
