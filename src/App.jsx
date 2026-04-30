@@ -970,6 +970,15 @@ export default function App() {
   // Cache billing eligibility on first render to avoid rapid toggling during PaymentRequest UI.
   // (On some devices, display-mode/referrer signals can momentarily change and cause the overlay to flash.)
   const caBillingEligible = useMemo(() => caCanUsePlayBilling(), []);
+  useEffect(() => {
+  if (typeof window === "undefined") return;
+  if (caBillingEligible) return;
+
+  const isRootPath = window.location.pathname === "/" || window.location.pathname === "/index.html";
+  if (!isRootPath) return;
+
+  window.location.replace(CA_PLAY_STORE_APP_URL);
+}, [caBillingEligible]);
 
   const caStoreUnlockLocally = () => {
     try { localStorage.setItem(CA_UNLOCK_STORAGE_KEY, "1"); } catch { /* ignore */ }
